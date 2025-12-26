@@ -16,7 +16,7 @@ import math
 from mypackage import r_generator as rg
 from mypackage.LOG_DATA import LOG_DICT,RISKY_EVA_C,RISKY_EVA_S
 from mypackage import interraction_terminal 
-import docx_to_pdf
+import docx_to_pdf,sign_only
 
 """=========================编辑生成全部用于替换的列表索引文件replacements======================"""
 
@@ -203,10 +203,8 @@ def do_replace(doc , replacements1:list[tuple[str,str]],replacements2:list[tuple
     for target_text, replacement_text in replacements1:
         rg.replace_text(doc, target_text, replacement_text )
 
-#   签字函数
-def make_sign_dig_log(workbook:Workbook,report_name:str,pages_list:list[int],name_list:list[str],kw_dict:dict[str,list[str]])->dict:
-    """编制签名图片、开挖图片、路由图替换的索引"""
-    # 签结论页、资料审查：遍历所有的宏观和开挖记录检验人员，通过集合无序化，结论页最多签4人，资料最多签2人
+def make_sign_log(workbook:Workbook,report_name:str,name_list:list[str])->dict:
+    """签名的字典索引"""
     sign_dict:dict = {}
     all_names:set[str] = set(name_list)
 
@@ -216,36 +214,37 @@ def make_sign_dig_log(workbook:Workbook,report_name:str,pages_list:list[int],nam
     sign_dict['签字'] += temp_list[:4]  # 结论页检验人员
     if lenth<4:
         sign_dict['签字'] += ['空白']*(4-lenth) 
-    sign_dict['签字'] += temp_list[:1]  # 编制人员
-    sign_dict['签字'] += temp_list[:2]  # 资料审查
-    if lenth<2:
-        sign_dict['签字'] += ['空白']*(2-lenth)
+    
+    sign_dict['编制人员签字']=[random.choice(name_list)]
+    sheet=workbook['管道基本信息']
+    log_dict=rg.get_col_in_sheet(sheet)
+    rows=rg.get_rows_in_sheet(report_name,sheet)
+    sign_dict['审核人员签字']=list(set(sheet[log_dict['审核人']+row].value for row in rows if sheet[log_dict['审核人']+row].value)) 
 
-    # 签宏观、开挖、穿跨越检查报告
-    sign_dict['签字'] += [temp_list[0],'空白']*(sum(pages_list)+pages_list[1])  # 结论页检验人员
+    return sign_dict
+
+#   换图函数
+def make_pic_log(workbook:Workbook,report_name:str,kw_dict:dict[str,list[str]])->dict:
+    """编制开挖图片、路由图替换的索引"""
+    pic_dict:dict = {}
     
     #   开挖照片
     sheet =workbook['开挖检测记录']
     log_dict = rg.get_col_in_sheet(sheet)
-    sign_dict['开挖']=[sheet[log_dict['记录自编号']+row].value for rows in kw_dict.values() for row in rows] 
-      
-    #   签风险评估报告
-    any_name=list(all_names)[0]
-    sign_dict['签字'] += [any_name]*2
-   
-    #   替换路由图：根据报告编号来定位
-    sign_dict['管道分图']=[]
-    sign_dict['管道总图']=[]
+    pic_dict['开挖']=[sheet[log_dict['记录自编号']+row].value for rows in kw_dict.values() for row in rows] 
+    #   路由图
+    pic_dict['管道分图']=[]
+    pic_dict['管道总图']=[]
     if config['是否写入管道路由图']:
         sheet = workbook['管段清单']
         log_dict = rg.get_col_in_sheet(sheet)
         rows = rg.get_rows_in_sheet(report_name,sheet,log_dict['报告编号'])
         pic_g_nums:set[str]=set(sheet[log_dict['街道名称']+row].value for row in rows)
         pic_nums:set[str]=set(sheet[log_dict['管道编码']+row].value for row in rows)
-        sign_dict['管道总图']=[f"{config['数据源所在']}\\总图\\路由_{pic_g_num}.jpg" for pic_g_num in pic_g_nums if os.path.exists(f"{config['数据源所在']}\\总图\\路由_{pic_g_num}.jpg")]    
-        sign_dict['管道分图']=[f"{config['数据源所在']}\\路由图\\管线_{pic_num}.jpg" for pic_num in pic_nums]
+        pic_dict['管道总图']=[f"{config['数据源所在']}\\总图\\路由_{pic_g_num}.jpg" for pic_g_num in pic_g_nums if os.path.exists(f"{config['数据源所在']}\\总图\\路由_{pic_g_num}.jpg")]    
+        pic_dict['管道分图']=[f"{config['数据源所在']}\\路由图\\管线_{pic_num}.jpg" for pic_num in pic_nums]
        
-    return sign_dict
+    return pic_dict
 
     
 #   完成索引
@@ -385,6 +384,10 @@ def make_replacement_index(workbook:Workbook,report_name:str,gd_dict:dict[str,di
     first_date = min(all_date)
     last_date = max(all_date)
     next_time = first_date + datetime.timedelta(days=next_ins_year*365-31+210)  #下次检验日期
+    if next_time>datetime.datetime(2028,12,1):
+        next_time=datetime.datetime(2028,12,1)
+    elif next_time<datetime.datetime(2028,9,1):
+        next_time=datetime.datetime(2028,12,1)
     replacements['文本'] += [
                     ('+测深数量',depth_count),
                     ('+开挖总数',dig_count),
@@ -424,7 +427,7 @@ def make_replacement_index(workbook:Workbook,report_name:str,gd_dict:dict[str,di
                     # ('+环境',sheet[log_dict['环境条件']+row_0].value),
                     # ('+检验日期',global_date),
                     ]
-        # replacements['检验人员']+=sheet[log_dict['检验人员']+row_0].value.split(', ')
+        replacements['检验人员']+=[sheet[log_dict['创建人']+row].value for row in rows if sheet[log_dict['创建人']+row].value] 
         results = ''
         key_dict:dict[str,list[str]]={}
         check_all_set:set[str]=set()    
@@ -552,7 +555,7 @@ def make_replacement_index(workbook:Workbook,report_name:str,gd_dict:dict[str,di
             v2 = rg.check_text(sheet[log_dict['结论']+row].value) if '4级' not in sheet[log_dict['结论']+row].value else '2级'
             temp_list += [('+备注',f"备注：{v1}")]
             replacements['开挖检验报告'].append(temp_list)
-            replacements['检验人员']+=sheet[log_dict['检验人员']+row].value.split(', ')
+            replacements['检验人员']+=sheet[log_dict['检验人员']+row].value.split(',')
 
             #   开挖报告首页
             lwd=sheet[log_dict['探坑规格（m）']+row].value
@@ -812,6 +815,9 @@ def make_all_replacement_index(workbook:Workbook,report_name:str,gd_dict:dict[st
                 ('+使用单位',sheet[log_dict['使用单位']+row].value),
                 # ('+使用单位','成都燃气集团股份有限公司管网分公司'),
                 ('+检验日期',sheet[log_dict['检验日期']+row].value),
+                ('+编制日期',sheet[log_dict['编制日期']+row].value),
+                ('+审核日期',sheet[log_dict['审核日期']+row].value),
+                ('+批准日期',sheet[log_dict['批准日期']+row].value),
                 ('+项目名称',sheet[log_dict['管道名称']+row].value),
                 ('+管道名称',sheet[log_dict['管道名称']+row].value),
                 ('+管道长度',l),
@@ -889,21 +895,41 @@ def do_replace_in_son_report(doc,any_dict):
         else:
             pass
 
+def do_change_sign_tag(doc,sign_dict:dict[str,list[str]])->None:
+    """依照输入字典，替换签名图的标题"""
+    i=0
+    for shape in doc.InlineShapes:
+        tag:str = shape.Title 
+        if tag == '签字':
+            shape.Title =sign_dict['签字'][i]
+            i+=1
+        if tag == '编制人员签字':
+            shape.Title =sign_dict['编制人员签字'][0]
+        if tag == '审核人员签字':
+            shape.Title =sign_dict['审核人员签字'][0]
+
 def do_replace_all_pic(doc,pic_dict:dict,):
     """执行所有图片的替换"""
     i:int = 0
     j:int = 0
     k:int = 0
+    
     for shape in doc.InlineShapes:
         tag:str = shape.Title 
-        if tag == '签字':
-            if config['是否生成签字']:
-                if pic_dict['签字'][i]=='空白':
-                    pass
-                else:
-                    rg.replace_pictue(doc,f"{config['签名图片所在']}\\{pic_dict['签字'][i]}.png",shape)
-            i+=1
-        elif tag == '开挖':
+        # if tag == '签字':
+        #     if config['是否生成签字']:
+        #         if pic_dict['签字'][i]=='空白':
+        #             pass
+        #         else:
+        #             rg.replace_pictue(doc,f"{config['签名图片所在']}\\{pic_dict['签字'][i]}.png",shape)
+        #     i+=1
+        # elif tag == '编制人员签字':
+        #     if config['是否生成签字']:
+        #         rg.replace_pictue(doc,f"{config['签名图片所在']}\\{pic_dict['编制人员签字'][0]}.png",shape)
+        # elif tag == '审核人员签字':
+        #     if config['是否生成签字']:
+        #         rg.replace_pictue(doc,f"{config['签名图片所在']}\\{pic_dict['审核人员签字'][0]}.jpg",shape)
+        if tag == '开挖':
             for ex_name in ['.jpg','.png','.jpeg']:
                 f_path:str = f"{config['数据源所在']}\\开挖照片\\{pic_dict['开挖'][j]}{ex_name}"
                 if os.path.exists(f_path):
@@ -969,12 +995,17 @@ def solo_main(report_name:str,workbook:Workbook,word):
             print('扩张并写入段落')
             do_input_para(doc,workbook,gd_dict)
         
-        print('生成替换用文本')
+        print('生成替换用文本及签字索引')
         replacements_dict |= make_replacement_index(workbook,report_name,gd_dict)
         replacements_list += make_all_replacement_index(workbook,report_name,gd_dict) 
+        sign_dict=make_sign_log(workbook,report_name,replacements_dict['检验人员'])
 
-        print('替换内容')
+        print('替换内容及签名标题')
         do_replace( doc , replacements_dict['文本'],replacements_list )
+        do_change_sign_tag(doc,sign_dict)
+        
+        if config['是否生成签字']:
+            sign_only.sign_by_pic_name(doc,config['签名图片所在'])
         
         print('附件表格处理')
         do_add_row_for_all(report_name,doc,workbook,gd_dict)
@@ -991,12 +1022,12 @@ def solo_main(report_name:str,workbook:Workbook,word):
         if config['是否写入管道路由图']:
             print('扩张路由图')
             expand_all_figs(workbook, doc, report_name)
-
+        
         print('编制图片替换索引') 
-        sign_dict=make_sign_dig_log(workbook,report_name,replacements_dict['总页数'],replacements_dict['检验人员'],gd_dict['开挖'])
+        dig_dict=make_pic_log(workbook,report_name,gd_dict['开挖'])
 
         print('替换所有图片')
-        do_replace_all_pic(doc,sign_dict)
+        do_replace_all_pic(doc,dig_dict)
 
 
         # 移动到文档的末端
@@ -1006,7 +1037,8 @@ def solo_main(report_name:str,workbook:Workbook,word):
         # 更新文档中的所有域
         doc.Fields.Update()
         doc.Saved = False
-        output_file = f"{config['输出文件所在']}\\{report_name}.docx"
+        output_file = f"{config['输出文件所在']}\\{sign_dict['审核人员签字'][0]}\\{report_name}.docx"
+        # output_file = f"{config['输出文件所在']}\\{report_name}修正.docx"
         doc.SaveAs2(output_file, FileFormat=16)  # 16 表示docx 17 表示 PDF
         # print('正在保存文件')
         # output_file = f"{config['输出文件所在']}\\{report_name}.pdf"
@@ -1028,10 +1060,10 @@ def solo_main(report_name:str,workbook:Workbook,word):
 
 if __name__ == '__main__':
     set_list:list[tuple[int,str,str|bool,str|bool]]=[
-        (2,'模板文件','docx',r'E:\BaiduSyncdisk\成渝特检\模板文件与生成程序\记录、报告生成\PE管\1400管网\PE管定检报告模版_Ver_1.30_手签名.docx'),
+        (2,'模板文件','docx',r'E:\BaiduSyncdisk\成渝特检\模板文件与生成程序\记录、报告生成\PE管\1400管网\PE管定检报告模版_Ver_1.30_电子签.docx'),
         (0,'数据源所在','',r'E:\BaiduSyncdisk\成渝特检\模板文件与生成程序\记录、报告生成\PE管\1400管网'),
         (0,'签名图片所在','',r'E:\BaiduSyncdisk\成渝特检\模板文件与生成程序\记录、报告生成\PE管\电子签名'),
-        (0,'输出文件所在','',r'E:\BaiduSyncdisk\成渝特检\模板文件与生成程序\记录、报告生成\PE管\1400管网\输出'),
+        (0,'输出文件所在','',r'E:\BaiduSyncdisk\成渝特检\模板文件与生成程序\记录、报告生成\PE管\1400管网\管网PE第二批'),
         (3,'是否生成概述段落',False,True),
         (3,'是否写入封面',False,False),
         (3,'是否写入管道清单',False,True),
@@ -1062,8 +1094,9 @@ if __name__ == '__main__':
     sheet=workbook['管道基本信息']
     all_names:list[str]=[]
     log_dict =rg.get_col_in_sheet(sheet)
-    all_names=[cell.value for cell in sheet[log_dict['报告编号']] if cell.value]    # 遍历静态台账里所有编号    
-    for report_name in sorted(list(set(all_names[1:])),reverse=True)[:1]:
+    rows = rg.get_rows_in_sheet('二',sheet,log_dict['批次'])
+    all_names=set(sheet[log_dict['报告编号']+row].value for row in rows if sheet[log_dict['报告编号']+row].value)   # 遍历静态台账里所有编号    
+    for report_name in sorted(list(set(all_names)),reverse=False)[:1]:
         # if os.path.exists(f"{config['输出文件所在']}\\{report_name}.docx"):
         try:
             solo_main(report_name,workbook,word)
