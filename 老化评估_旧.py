@@ -6,7 +6,7 @@ import win32com.client as win32
 import math
 import os
 # import random
-from mypackage import r_generator as rg
+from src.mypackage import r_generator as rg
 
 #   输入：待查询字符，工作表，返回：所在行号字符串列表
 def get_rows_in_sheet(report_name , sheet , col_num ='A'):

@@ -9,8 +9,8 @@ import openpyxl
 import win32com.client as win32
 #import math
 import os
-import r_generator as rg
-from LOG_DATA import LOG_DICT
+import src.mypackage.r_generator as rg
+from src.mypackage.LOG_DATA import LOG_DICT
 
 
 """=========================编辑生成全部用于替换的列表索引文件replacements======================"""

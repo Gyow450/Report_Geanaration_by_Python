@@ -13,9 +13,9 @@ import win32com.client as win32
 import os
 import traceback
 import math
-from mypackage import r_generator as rg
-from mypackage.LOG_DATA import LOG_DICT,RISKY_EVA_C,RISKY_EVA_S
-from mypackage import interraction_terminal 
+from src.mypackage import r_generator as rg
+from src.mypackage.LOG_DATA import LOG_DICT,RISKY_EVA_C,RISKY_EVA_S
+from src.mypackage import interraction_terminal 
 import docx_to_pdf,sign_only
 
 """=========================编辑生成全部用于替换的列表索引文件replacements======================"""

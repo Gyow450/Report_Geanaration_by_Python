@@ -1,4 +1,4 @@
-from mypackage import r_generator as rg
+from src.mypackage import r_generator as rg
 import win32com.client as win32
 from pathlib import Path
 from fastprogress import progress_bar

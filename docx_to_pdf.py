@@ -1,6 +1,6 @@
 import win32com.client as win32
 from pathlib import Path
-from mypackage import interraction_terminal
+from src.mypackage import interraction_terminal
 from fastprogress import progress_bar
 
 def docx_transform(input_dir:Path|str,output_dir:Path|str)->None:

@@ -5,7 +5,7 @@
 """
 from pathlib import Path
 from pypdf import PdfReader, PdfWriter
-from mypackage import interraction_terminal
+from src.mypackage import interraction_terminal
 from fastprogress import progress_bar
 
 def analyze_words(input_str:str)->list[int]:

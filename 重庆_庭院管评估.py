@@ -10,9 +10,9 @@ import win32com.client as win32
 import os
 import traceback
 import math
-from mypackage import r_generator as rg
-from mypackage.LOG_DATA import LOG_DICT,RISKY_EVA_C_CQ,RISKY_EVA_S_CQ
-from mypackage import set_config,interraction_terminal 
+from src.mypackage import r_generator as rg
+from src.mypackage.LOG_DATA import LOG_DICT,RISKY_EVA_C_CQ,RISKY_EVA_S_CQ
+from src.mypackage import set_config,interraction_terminal 
 
 
 """=========================编辑生成全部用于替换的列表索引文件replacements======================"""
