@@ -32,6 +32,30 @@ def check_office_installation()->str|None:
     print("未检测到 Microsoft Office 或 WPS 的安装。")
     return None
 
+# def disable_all_settings(doc):
+#     """
+#     在单个文档中关闭所有相关设置以优化性能。
+#     """
+#     app = doc.Application
+#     # 禁用屏幕更新
+#     app.ScreenUpdating = False
+    
+#     # 固定表格行高
+#     for table in doc.Tables:
+#         table.Rows.HeightRule = 1  # 固定行高
+
+# def enable_all_settings(doc):
+#     """
+#     在单个文档中恢复之前关闭的所有设置。
+#     """
+#     app = doc.Application
+#     # 恢复屏幕更新
+#     app.ScreenUpdating = True
+    
+#     # 恢复表格行高自动调整
+#     for table in doc.Tables:
+#         table.Rows.HeightRule = 0  # 恢复自动行高
+
 def replace_text_in_page(word,doc,target_text:str, replacement_text:str|None|datetime.datetime|int|float ,page_number:int,while_none:str = '/')->None:
     
     # 清除之前的查找格式
@@ -317,28 +341,31 @@ def copy_and_insert_paragraph(doc,target_text:str,insert_text_list:list[str] ):
                 break
 #   扩张单个表格页
 def copy_and_insert_report(doc , target_text:str,times:int ,pages:int = 0):
-    """复制多个整页页"""
+    """复制多个整页"""
     selection = doc.Application.Selection
     selection.Find.Execute(target_text)
     print(target_text+'\t数量：'+str(times-1))
     # 获取目标段落所在的页码，使用整数值 3 表示 wdActiveEndPageNumber
     page_number = selection.Information(3)
+    # 使用 GoTo 方法定位到目标页的起始位置
+    target_page_start = doc.GoTo(1, 1, page_number).Start  # 1 表示 wdGoToPage，1 表示 wdGoToAbsolute
 
-    for _ in range(0,times-1):
-        
-        # 使用 GoTo 方法定位到目标页的起始位置
-        target_page_start = doc.GoTo(1, 1, page_number).Start  # 1 表示 wdGoToPage，1 表示 wdGoToAbsolute
-
-        # 使用 GoTo 方法定位到目标页的结束位置（即下一页的起始位置）
-        target_page_end = doc.GoTo(1, 1, page_number + 1 + pages).Start
-
-        # 获取目标页的内容范围
-        target_range = doc.Range(target_page_start, target_page_end)
-
-        # 复制目标页的内容
-        target_range.Copy()
+    # 使用 GoTo 方法定位到目标页的结束位置（即下一页的起始位置）
+    target_page_end = doc.GoTo(1, 1, page_number + 1 + pages).Start
+    target_range = doc.Range(target_page_start, target_page_end)
+   
+    insert_text = target_range.FormattedText
+    for _ in range(0,times-1): 
         new_page_range = doc.Range(target_page_end, target_page_end)
-        new_page_range.Paste()
+        new_page_range.FormattedText= insert_text
+
+    # # 复制目标页的内容
+    # target_range.Copy()
+    # for _ in range(0,times-1):
+        
+    #     new_page_range = doc.Range(target_page_end, target_page_end)
+    #     new_page_range.Paste()
+
     
     # # 使用 GoTo 方法定位到目标页的起始位置
     # target_page_start = doc.GoTo(1, 1, page_number).Start  # 1 表示 wdGoToPage，1 表示 wdGoToAbsolute
@@ -355,7 +382,6 @@ def copy_and_insert_report(doc , target_text:str,times:int ,pages:int = 0):
     # for _ in range(times-1):
     #     new_page_range.Paste()
     #     new_page_range = doc.Range(target_page_end, target_page_end)
-
 
     # 删除控制用关键字
     replace_text(doc, target_text, '' , 2)
@@ -447,6 +473,7 @@ def write_in_table(doc,k_word:str,sheet,rows:list[str])->None:
         first_cell = table.Cell(1,1)
         fist_cell_text = first_cell.Range.Text.strip()
         if k_word in fist_cell_text:
+            table.Rows.HeightRule = 1 
             i=1
             for row in rows:
                 i += 1
@@ -461,9 +488,8 @@ def write_in_table(doc,k_word:str,sheet,rows:list[str])->None:
                     elif not isinstance(v, str):
                         v = str(v)                 
                     table.Cell(i,j+1).Range.Text = v
-            # for row_ in table.Rows:
-            #     row_.HeightRule = 1  # 1 表示 wdRowHeightAuto
-            #     row_.Height = 0  # 自动调整行高
+            table.Rows.HeightRule = 0
+            
             break
 
 

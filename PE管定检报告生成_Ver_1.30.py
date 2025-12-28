@@ -99,7 +99,7 @@ def do_add_row_for_all(report_name:str,doc,workbook:Workbook,gd_dict:dict[str,di
     all_problems:list[str] = list()
     for gd_name,rows in gd_dict['宏观'].items():
         for row in rows:
-            for key_word in ['地面标志','管道防护带','地表环境','阀门','阀门井','钢塑转换接头','调压箱、调压柜']:
+            for key_word in ['地面标志','管道防护带','地表环境','阀门','阀门井','钢塑转换接头',]:
                 problem:str|None = sheet[log_dict[key_word]+row].value
                 if problem is not None and problem not in white_list:
                     v = [
@@ -184,12 +184,12 @@ def sort_out_data(workbook:Workbook,report_name:str)->dict[str,dict[tuple[str],l
     
     sheet = workbook['宏观检查记录']
     log_dict= rg.get_col_in_sheet(sheet)
-    for gd_num in gd_set:
+    for gd_num in sorted(list(gd_set)):
         f_dict['宏观'][gd_num] = [str(c.row) for c in sheet[log_dict['管道编码']] if c.value==gd_num[0]]
 
     sheet = workbook['开挖检测记录']
     log_dict= rg.get_col_in_sheet(sheet)
-    for gd_num in gd_set:
+    for gd_num in sorted(list(gd_set)):
         f_dict['开挖'][gd_num] = [str(c.row) for c in sheet[log_dict['管道编码']] if c.value==gd_num[0]]
 
     return f_dict
@@ -303,18 +303,21 @@ def make_replacement_index(workbook:Workbook,report_name:str,gd_dict:dict[str,di
     error_depth:int=0   #   埋深不足统计
     row_marco_list = [row for rows in gd_dict['宏观'].values() for row in rows]
     for key in ['管道防护带','地表环境','穿、跨越公路','穿、跨越河流','地面标志','管道埋深','埋深达标','阀门','阀门井','钢塑转换接头','调压箱、调压柜']:
-        temp_set:set[str]=set()
-        temp_list:list[int|float|str]=[]
+        # temp_set:set[str]=set()
+        # temp_list:list[int|float|str]=[]
         if key in ['管道埋深','埋深达标']:  #   对于这两个列表记数
-            temp_list=[sheet[log_dict[key]+row].value for row in row_marco_list if sheet[log_dict[key]+row].value]
-            check_dict[key]=len(temp_list)
+            check_dict.setdefault(key,0)
+            check_dict[key]+=len([sheet[log_dict[key]+row].value for row in row_marco_list if sheet[log_dict[key]+row].value])
+            # check_dict[key]=len(temp_list)
         else:
-            for row in row_marco_list:
-                v=sheet[log_dict[key]+row].value 
-                if v:
-                    for p in v.split(', '):
-                        temp_set.add(p)
-            check_dict[key]=temp_set
+            check_dict.setdefault(key,set())
+            check_dict[key]|=set(p for row in row_marco_list if sheet[log_dict[key]+row].value for p in sheet[log_dict[key]+row].value.split(', ') )
+            # for row in row_marco_list:
+            #     v=sheet[log_dict[key]+row].value 
+            #     if v:
+            #         for p in v.split(', '):
+            #             temp_set.add(p)
+            # check_dict[key]=temp_set
     #   环境检查结果
     if '全线深根植物伴行' in check_dict['管道防护带']: 
         check_dict['管道防护带'].discard('全线深根植物伴行')  
@@ -594,7 +597,7 @@ def make_replacement_index(workbook:Workbook,report_name:str,gd_dict:dict[str,di
     temp_list:list[tuple]= []
     sheet =workbook['宏观检查记录']
     log_dict:dict = rg.get_col_in_sheet(sheet)
-    temp_count_pages:int = 0    #   总的份数
+    temp_count_pages:int = 0    #   总的份数，或者说穿跨越分项报告占据的页数
     temp_count:int = 0  #分项报告编号
     for gd_name,rows in gd_dict['宏观'].items():
         key_dict:dict[str,list[str]]={}
@@ -622,7 +625,7 @@ def make_replacement_index(workbook:Workbook,report_name:str,gd_dict:dict[str,di
             #     ('+管道编号',gd_num[gd_name]),
             #     ('+检验日期',global_date),
             #     # ('+环境条件',sheet[log_dict['环境条件']+row_0].value),
-            #     ('+检查结论',"检查结论：本次检验的管道无穿、跨越段"),
+            #     ('+检查结论',"检查结论：该管道无穿、跨越段"),
             #     ('&号1','/'),
             #     ('&长度1','/'),
             #     ('&发现问题及位置描述1','/'),
@@ -637,9 +640,9 @@ def make_replacement_index(workbook:Workbook,report_name:str,gd_dict:dict[str,di
         else:
             cap1:int = math.ceil(len(rows_1)/5)
             cap2:int = math.ceil(len(rows_2)/9)
-            pages:int=max(cap1,cap2)
-            temp_count+=1
-            temp_count_pages+=pages
+            pages:int=max(cap1,cap2)    #   占用页数
+            temp_count+=1               #   编号记数
+            temp_count_pages+=pages     #   总共分项报告页数
             for page in range(pages):
                 if pages>1: 
                     replacements['文本a'] +=[('报告#',f"报告（{temp_count}-{page+1}）")]
@@ -988,6 +991,7 @@ def solo_main(report_name:str,workbook:Workbook,word):
     try:
         doc = word.Documents.Open(doc_modle_path)
         doc.Saved = True
+        doc.Application.ScreenUpdating=False
         print('编写宏观记录中的管段——记录索引')
         gd_dict = sort_out_data(workbook,report_name)
         
@@ -1007,17 +1011,17 @@ def solo_main(report_name:str,workbook:Workbook,word):
         if config['是否生成签字']:
             sign_only.sign_by_pic_name(doc,config['签名图片所在'])
         
-        print('附件表格处理')
-        do_add_row_for_all(report_name,doc,workbook,gd_dict)
-
         print('扩张分项报告表格')
         expand_all_tables(doc,replacements_dict['总页数'])
 
         print('替换残余内容')
         do_replace( doc , replacements_dict['文本a'])
-    
+        
         print('填写分项报告表格')
         do_replace_in_son_report(doc,replacements_dict)
+        
+        print('附件表格处理')
+        do_add_row_for_all(report_name,doc,workbook,gd_dict)
     
         if config['是否写入管道路由图']:
             print('扩张路由图')
@@ -1028,8 +1032,7 @@ def solo_main(report_name:str,workbook:Workbook,word):
 
         print('替换所有图片')
         do_replace_all_pic(doc,dig_dict)
-
-
+        doc.Application.ScreenUpdating=True
         # 移动到文档的末端
         selection = word.Selection
         selection.EndKey(6)  # 6 表示 wdStory，即整个文档
@@ -1037,8 +1040,8 @@ def solo_main(report_name:str,workbook:Workbook,word):
         # 更新文档中的所有域
         doc.Fields.Update()
         doc.Saved = False
-        output_file = f"{config['输出文件所在']}\\{sign_dict['审核人员签字'][0]}\\{report_name}.docx"
-        # output_file = f"{config['输出文件所在']}\\{report_name}修正.docx"
+        # output_file = f"{config['输出文件所在']}\\{sign_dict['审核人员签字'][0]}\\{report_name}.docx"
+        output_file = f"{config['输出文件所在']}\\{report_name}.docx"
         doc.SaveAs2(output_file, FileFormat=16)  # 16 表示docx 17 表示 PDF
         # print('正在保存文件')
         # output_file = f"{config['输出文件所在']}\\{report_name}.pdf"
@@ -1094,16 +1097,16 @@ if __name__ == '__main__':
     sheet=workbook['管道基本信息']
     all_names:list[str]=[]
     log_dict =rg.get_col_in_sheet(sheet)
-    rows = rg.get_rows_in_sheet('二',sheet,log_dict['批次'])
+    rows = rg.get_rows_in_sheet('三',sheet,log_dict['批次'])
     all_names=set(sheet[log_dict['报告编号']+row].value for row in rows if sheet[log_dict['报告编号']+row].value)   # 遍历静态台账里所有编号    
-    for report_name in sorted(list(set(all_names)),reverse=False)[:1]:
+    for report_name in sorted(list(set(all_names)),reverse=False)[:-1]:
         # if os.path.exists(f"{config['输出文件所在']}\\{report_name}.docx"):
         try:
             solo_main(report_name,workbook,word)
         except Exception as e:
             print('有错误发生')
-        finally:
-            continue
+        # finally:
+        #     continue
     if config['是否转pdf']:
         docx_to_pdf.docx_transform(config['输出文件所在'],config['输出文件所在'])
 
