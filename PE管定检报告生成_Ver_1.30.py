@@ -302,7 +302,7 @@ def make_replacement_index(workbook:Workbook,report_name:str,gd_dict:dict[str,di
     depth_count:int=0  #   测深数量统计          
     error_depth:int=0   #   埋深不足统计
     row_marco_list = [row for rows in gd_dict['宏观'].values() for row in rows]
-    for key in ['管道防护带','地表环境','穿、跨越公路','穿、跨越河流','地面标志','管道埋深','埋深达标','阀门','阀门井','钢塑转换接头','调压箱、调压柜']:
+    for key in ['管道防护带','地表环境','穿、跨越公路','穿、跨越河流','地面标志','管道埋深','埋深达标','阀门','阀门井','钢塑转换接头',]:
         # temp_set:set[str]=set()
         # temp_list:list[int|float|str]=[]
         if key in ['管道埋深','埋深达标']:  #   对于这两个列表记数
