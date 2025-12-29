@@ -81,7 +81,7 @@ def expand_all_figs(workbook:Workbook, doc, report_name:str):
 
 def do_add_row_for_all(report_name:str,doc,workbook:Workbook,gd_dict:dict[str,dict[tuple[str],list[str]]]):
     """执行‘管道清单’，‘问题清单’两个表格的扩张和填入"""
-    if config['是否写入管道清单']:
+    if CONFIG['是否写入管道清单']:
         sheet = workbook['管段清单']
         log_dict:dict = rg.get_col_in_sheet(sheet)
         rows:list[str] = rg.get_rows_in_sheet(report_name,sheet,log_dict['报告编号']) 
@@ -235,14 +235,14 @@ def make_pic_log(workbook:Workbook,report_name:str,kw_dict:dict[str,list[str]])-
     #   路由图
     pic_dict['管道分图']=[]
     pic_dict['管道总图']=[]
-    if config['是否写入管道路由图']:
+    if CONFIG['是否写入管道路由图']:
         sheet = workbook['管段清单']
         log_dict = rg.get_col_in_sheet(sheet)
         rows = rg.get_rows_in_sheet(report_name,sheet,log_dict['报告编号'])
         pic_g_nums:set[str]=set(sheet[log_dict['街道名称']+row].value for row in rows)
         pic_nums:set[str]=set(sheet[log_dict['管道编码']+row].value for row in rows)
-        pic_dict['管道总图']=[f"{config['数据源所在']}\\总图\\路由_{pic_g_num}.jpg" for pic_g_num in pic_g_nums if os.path.exists(f"{config['数据源所在']}\\总图\\路由_{pic_g_num}.jpg")]    
-        pic_dict['管道分图']=[f"{config['数据源所在']}\\路由图\\管线_{pic_num}.jpg" for pic_num in pic_nums]
+        pic_dict['管道总图']=[f"{CONFIG['数据源所在']}\\总图\\路由_{pic_g_num}.jpg" for pic_g_num in pic_g_nums if os.path.exists(f"{CONFIG['数据源所在']}\\总图\\路由_{pic_g_num}.jpg")]    
+        pic_dict['管道分图']=[f"{CONFIG['数据源所在']}\\路由图\\管线_{pic_num}.jpg" for pic_num in pic_nums]
        
     return pic_dict
 
@@ -831,7 +831,7 @@ def make_all_replacement_index(workbook:Workbook,report_name:str,gd_dict:dict[st
                  ]
     
     # 检查是否有不明管段
-    if config['是否写入管道清单']:
+    if CONFIG['是否写入管道清单']:
         sheet = workbook['管段清单']
         log_dict:dict =rg.get_col_in_sheet(sheet)
         rows:list[str] = rg.get_rows_in_sheet(report_name,sheet,log_dict['报告编号'])
@@ -934,16 +934,16 @@ def do_replace_all_pic(doc,pic_dict:dict,):
         #         rg.replace_pictue(doc,f"{config['签名图片所在']}\\{pic_dict['审核人员签字'][0]}.jpg",shape)
         if tag == '开挖':
             for ex_name in ['.jpg','.png','.jpeg']:
-                f_path:str = f"{config['数据源所在']}\\开挖照片\\{pic_dict['开挖'][j]}{ex_name}"
+                f_path:str = f"{CONFIG['数据源所在']}\\开挖照片\\{pic_dict['开挖'][j]}{ex_name}"
                 if os.path.exists(f_path):
                     rg.replace_pictue(doc,f_path,shape,120)
                     break
             j+=1
         elif tag == '管道总图':
-            if config['是否写入管道路由图'] and pic_dict['管道总图']:
+            if CONFIG['是否写入管道路由图'] and pic_dict['管道总图']:
                 rg.replace_pictue(doc,pic_dict['管道总图'][0],shape,580)
         elif tag == '管道分图':
-            if config['是否写入管道路由图']:
+            if CONFIG['是否写入管道路由图']:
                 rg.replace_pictue(doc,pic_dict['管道分图'][k],shape,580) 
             k+=1
         else:
@@ -987,7 +987,7 @@ def solo_main(report_name:str,workbook:Workbook,word):
     """处理单个报告全体动作"""
     replacements_dict:dict = {}
     replacements_list:list[tuple] = []
-    doc_modle_path = f"{config['模板文件']}"
+    doc_modle_path = f"{CONFIG['模板文件']}"
     try:
         doc = word.Documents.Open(doc_modle_path)
         doc.Saved = True
@@ -995,7 +995,7 @@ def solo_main(report_name:str,workbook:Workbook,word):
         print('编写宏观记录中的管段——记录索引')
         gd_dict = sort_out_data(workbook,report_name)
         
-        if config['是否生成概述段落']:
+        if CONFIG['是否生成概述段落']:
             print('扩张并写入段落')
             do_input_para(doc,workbook,gd_dict)
         
@@ -1008,8 +1008,8 @@ def solo_main(report_name:str,workbook:Workbook,word):
         do_replace( doc , replacements_dict['文本'],replacements_list )
         do_change_sign_tag(doc,sign_dict)
         
-        if config['是否生成签字']:
-            sign_only.sign_by_pic_name(doc,config['签名图片所在'])
+        if CONFIG['是否生成签字']:
+            sign_only.sign_by_pic_name(doc,CONFIG['签名图片所在'])
         
         print('扩张分项报告表格')
         expand_all_tables(doc,replacements_dict['总页数'])
@@ -1023,7 +1023,7 @@ def solo_main(report_name:str,workbook:Workbook,word):
         print('附件表格处理')
         do_add_row_for_all(report_name,doc,workbook,gd_dict)
     
-        if config['是否写入管道路由图']:
+        if CONFIG['是否写入管道路由图']:
             print('扩张路由图')
             expand_all_figs(workbook, doc, report_name)
         
@@ -1040,11 +1040,11 @@ def solo_main(report_name:str,workbook:Workbook,word):
         # 更新文档中的所有域
         doc.Fields.Update()
         doc.Saved = False
-        # output_file = f"{config['输出文件所在']}\\{sign_dict['审核人员签字'][0]}\\{report_name}.docx"
-        output_file = f"{config['输出文件所在']}\\{report_name}.docx"
+        output_file = f"{CONFIG['输出文件所在']}\\{sign_dict['审核人员签字'][0]}\\{report_name}.docx"
+        # output_file = f"{CONFIG['输出文件所在']}\\{report_name}.docx"
         doc.SaveAs2(output_file, FileFormat=16)  # 16 表示docx 17 表示 PDF
         # print('正在保存文件')
-        # output_file = f"{config['输出文件所在']}\\{report_name}.pdf"
+        # output_file = f"{CONFIG['输出文件所在']}\\{report_name}.pdf"
         # doc.SaveAs2(output_file, FileFormat=17)  
         
         print(f"文档已保存为：{output_file}")
@@ -1052,7 +1052,7 @@ def solo_main(report_name:str,workbook:Workbook,word):
     except Exception as ex:
         traceback.print_exc()
         if doc is not None:
-            doc.SaveAs2(f"{config['输出文件所在']}\\error_{report_name}.docx",FileFormat =16)
+            doc.SaveAs2(f"{CONFIG['输出文件所在']}\\error_{report_name}.docx",FileFormat =16)
             print(f"{report_name}发生错误！")
             doc.Saved =True
             raise ex
@@ -1066,20 +1066,19 @@ if __name__ == '__main__':
         (2,'模板文件','docx',r'E:\BaiduSyncdisk\成渝特检\模板文件与生成程序\记录、报告生成\PE管\1400管网\PE管定检报告模版_Ver_1.30_电子签.docx'),
         (0,'数据源所在','',r'E:\BaiduSyncdisk\成渝特检\模板文件与生成程序\记录、报告生成\PE管\1400管网'),
         (0,'签名图片所在','',r'E:\BaiduSyncdisk\成渝特检\模板文件与生成程序\记录、报告生成\PE管\电子签名'),
-        (0,'输出文件所在','',r'E:\BaiduSyncdisk\成渝特检\模板文件与生成程序\记录、报告生成\PE管\1400管网\管网PE第二批'),
+        (0,'输出文件所在','',r'E:\BaiduSyncdisk\成渝特检\模板文件与生成程序\记录、报告生成\PE管\1400管网\管网PE第三批'),
         (3,'是否生成概述段落',False,True),
-        (3,'是否写入封面',False,False),
         (3,'是否写入管道清单',False,True),
         (3,'是否写入管道路由图',False,True),
         (3,'是否生成签字',False,False),    
         (3,'是否转pdf',False,False),    
     ]
-    config:dict[str,str|bool]=interraction_terminal.set_argumments(set_list)
+    CONFIG:dict[str,str|bool]=interraction_terminal.set_argumments(set_list)
     app_type = rg.check_office_installation()
     if app_type == None:
         print('未找到合适的应用以打开文档')
 
-    workbook:Workbook = openpyxl.load_workbook(f"{config['数据源所在']}\\原始数据.xlsx" )
+    workbook:Workbook = openpyxl.load_workbook(f"{CONFIG['数据源所在']}\\原始数据.xlsx" )
 
     print('读取模板文件')
     
@@ -1099,7 +1098,7 @@ if __name__ == '__main__':
     log_dict =rg.get_col_in_sheet(sheet)
     rows = rg.get_rows_in_sheet('三',sheet,log_dict['批次'])
     all_names=set(sheet[log_dict['报告编号']+row].value for row in rows if sheet[log_dict['报告编号']+row].value)   # 遍历静态台账里所有编号    
-    for report_name in sorted(list(set(all_names)),reverse=False)[:-1]:
+    for report_name in sorted(list(set(all_names)),reverse=False)[:]:
         # if os.path.exists(f"{config['输出文件所在']}\\{report_name}.docx"):
         try:
             solo_main(report_name,workbook,word)
@@ -1107,7 +1106,7 @@ if __name__ == '__main__':
             print('有错误发生')
         # finally:
         #     continue
-    if config['是否转pdf']:
-        docx_to_pdf.docx_transform(config['输出文件所在'],config['输出文件所在'])
+    if CONFIG['是否转pdf']:
+        docx_to_pdf.docx_transform(CONFIG['输出文件所在'],CONFIG['输出文件所在'])
 
 

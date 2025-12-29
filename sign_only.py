@@ -17,7 +17,7 @@ def sign_by_pic_name(doc,sign_path:Path|str):
                     break
         
 if __name__ =='__main__':
-    input_dir:Path=Path(r'E:\BaiduSyncdisk\成渝特检\模板文件与生成程序\记录、报告生成\PE管\1400管网\管网PE第一批')
+    input_dir:Path=Path(r'E:\BaiduSyncdisk\成渝特检\模板文件与生成程序\记录、报告生成\PE管\1400管网\管网PE第二批\付飞')
     sign_path:Path=Path(r'E:\BaiduSyncdisk\成渝特检\模板文件与生成程序\记录、报告生成\PE管\电子签名')
     docx_list:list[Path]=[p for p in input_dir.glob('*.docx') if (not p.name.startswith('~$') and not p.name.startswith('error'))]
     word = win32.Dispatch("Word.Application")
