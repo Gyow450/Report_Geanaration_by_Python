@@ -1,4 +1,4 @@
-from src.mypackage import r_generator as rg
+from src.mypackage import r_generator as rg,interraction_terminal
 import win32com.client as win32
 from pathlib import Path
 from fastprogress import progress_bar
@@ -17,8 +17,13 @@ def sign_by_pic_name(doc,sign_path:Path|str):
                     break
         
 if __name__ =='__main__':
-    input_dir:Path=Path(r'E:\BaiduSyncdisk\成渝特检\模板文件与生成程序\记录、报告生成\PE管\1400管网\管网PE第二批\付飞')
-    sign_path:Path=Path(r'E:\BaiduSyncdisk\成渝特检\模板文件与生成程序\记录、报告生成\PE管\电子签名')
+    base_set={
+        (0,'源文件所在文件夹','',r'E:\BaiduSyncdisk\成渝特检\模板文件与生成程序\记录、报告生成\PE管\1400管网\管网PE第3.5批\邱永洪'),
+        (0,'签名图片所在文件夹','',r'E:\BaiduSyncdisk\成渝特检\模板文件与生成程序\记录、报告生成\PE管\电子签名')
+    }
+    SETTING=interraction_terminal.set_argumments(base_set)
+    input_dir:Path=Path(SETTING['源文件所在文件夹'])
+    sign_path:Path=Path(SETTING['签名图片所在文件夹'])
     docx_list:list[Path]=[p for p in input_dir.glob('*.docx') if (not p.name.startswith('~$') and not p.name.startswith('error'))]
     word = win32.Dispatch("Word.Application")
     word.Visible = False  # 不显示 Word 窗口，加快处理速度
