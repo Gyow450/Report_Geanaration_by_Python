@@ -1096,7 +1096,7 @@ if __name__ == '__main__':
     sheet=workbook['管道基本信息']
     all_names:list[str]=[]
     log_dict =rg.get_col_in_sheet(sheet)
-    rows = rg.get_rows_in_sheet('三',sheet,log_dict['批次'])
+    rows = rg.get_rows_in_sheet('一',sheet,log_dict['批次'])
     all_names=set(sheet[log_dict['报告编号']+row].value for row in rows if sheet[log_dict['报告编号']+row].value)   # 遍历静态台账里所有编号    
     for report_name in sorted(list(set(all_names)),reverse=False)[:]:
         # if os.path.exists(f"{config['输出文件所在']}\\{report_name}.docx"):

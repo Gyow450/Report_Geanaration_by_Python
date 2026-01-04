@@ -1,7 +1,8 @@
 """用于生成记录、报告的函数集"""
 import math
 import datetime
-from openpyxl.workbook import Workbook
+from openpyxl.workbook.workbook import Workbook
+from openpyxl.worksheet.worksheet import Worksheet
 from openpyxl.cell.cell import Cell
 import win32com.client as win32
 import os
@@ -176,29 +177,28 @@ def replace_text_in_table(doc,table,any_list:list[tuple],type:str)->None:
 
 
     
-def get_rows_in_sheet(report_name:str , sheet:Workbook, col_num ='A',type:str='str'):
+def get_rows_in_sheet(report_name:str , sheet:Worksheet, col_letter ='A',type:str='str'):
     """实际是查找某一列中关键字，返回行号列表,type字段控制格式（str或int）"""                                                      
     rows_in_sheet:list[str|int] = []
-    if type == 'str':           #开始检查该工作表中此报告的重数                            
-        for row in sheet[col_num]:                                                                  
-            if row.value == report_name:
-                rows_in_sheet.append(str(row.row))
-    elif type == 'int':
-        for row in sheet[col_num]:                                                                  
-            if row.value == report_name:
-                rows_in_sheet.append(row.row)
-
+    col_num:int = sheet[col_letter+'1'].column
+    for cells in sheet.iter_cols(min_col=col_num,max_col=col_num,min_row=2,max_row=sheet.max_row,values_only=False): 
+        for cell in cells:                                                               
+            if cell.value == report_name:
+                if type == 'str':
+                    rows_in_sheet.append(str(cell.row))
+                elif type == 'int':
+                    rows_in_sheet.append(cell.row)
     return rows_in_sheet
 
 
-def get_col_in_sheet( sheet:Workbook , row:str = '1',type:str ='str')->dict[str,str]:
+def get_col_in_sheet( sheet:Worksheet, row:str = '1',type:str ='str')->dict[str,str]:
     """默认返回工作表第一行的 名称：列字母 字典"""
     log_dict:dict[str:str] = {}
     if type == 'str':
-        for cell in sheet[1]:
+        for cell in sheet[int(row)]:
             log_dict[cell.value] = cell.column_letter
     elif type == 'int':
-        for cell in sheet[1]:
+        for cell in sheet[int(row)]:
             log_dict[cell.value] = cell.column
     return log_dict
 
