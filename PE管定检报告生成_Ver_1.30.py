@@ -180,7 +180,7 @@ def sort_out_data(workbook:Workbook,report_name:str)->dict[str,dict[tuple[str],l
     log_dict= rg.get_col_in_sheet(sheet)
     rows = rg.get_rows_in_sheet(report_name,sheet,log_dict['报告编号'])
     #  管段（编码，名称）元组集合
-    gd_set:set[tuple[str]]=set((sheet[log_dict['管道编码']+row].value,sheet[log_dict['定检管道名称']+row].value) for row in rows)        
+    gd_set:set[tuple[str]]=set((sheet[log_dict['管道编码']+row].value,sheet[log_dict['管道名称']+row].value) for row in rows)        
     
     sheet = workbook['宏观检查记录']
     log_dict= rg.get_col_in_sheet(sheet)
@@ -1040,8 +1040,8 @@ def solo_main(report_name:str,workbook:Workbook,word):
         # 更新文档中的所有域
         doc.Fields.Update()
         doc.Saved = False
-        output_file = f"{CONFIG['输出文件所在']}\\{sign_dict['审核人员签字'][0]}\\{report_name}.docx"
-        # output_file = f"{CONFIG['输出文件所在']}\\{report_name}.docx"
+        # output_file = f"{CONFIG['输出文件所在']}\\{sign_dict['审核人员签字'][0]}\\{report_name}.docx"
+        output_file = f"{CONFIG['输出文件所在']}\\{report_name}.docx"
         doc.SaveAs2(output_file, FileFormat=16)  # 16 表示docx 17 表示 PDF
         # print('正在保存文件')
         # output_file = f"{CONFIG['输出文件所在']}\\{report_name}.pdf"
@@ -1063,10 +1063,10 @@ def solo_main(report_name:str,workbook:Workbook,word):
 
 if __name__ == '__main__':
     set_list:list[tuple[int,str,str|bool,str|bool]]=[
-        (2,'模板文件','docx',r'E:\BaiduSyncdisk\成渝特检\模板文件与生成程序\记录、报告生成\PE管\1400管网\PE管定检报告模版_Ver_1.30_电子签.docx'),
-        (0,'数据源所在','',r'E:\BaiduSyncdisk\成渝特检\模板文件与生成程序\记录、报告生成\PE管\1400管网'),
+        (2,'模板文件','docx',r'E:\BaiduSyncdisk\成渝特检\模板文件与生成程序\记录、报告生成\PE管\空港\PE管定检报告模版_Ver_1.30_手签名.docx'),
+        (0,'数据源所在','',r'E:\BaiduSyncdisk\成渝特检\模板文件与生成程序\记录、报告生成\PE管\空港'),
         (0,'签名图片所在','',r'E:\BaiduSyncdisk\成渝特检\模板文件与生成程序\记录、报告生成\PE管\电子签名'),
-        (0,'输出文件所在','',r'E:\BaiduSyncdisk\成渝特检\模板文件与生成程序\记录、报告生成\PE管\1400管网\管网PE第三批'),
+        (0,'输出文件所在','',r'E:\BaiduSyncdisk\成渝特检\模板文件与生成程序\记录、报告生成\PE管\空港\输出'),
         (3,'是否生成概述段落',False,True),
         (3,'是否写入管道清单',False,True),
         (3,'是否写入管道路由图',False,True),
