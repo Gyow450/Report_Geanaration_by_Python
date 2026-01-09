@@ -239,11 +239,13 @@ def make_pic_log(workbook:Workbook,report_name:str,kw_dict:dict[str,list[str]])-
         sheet = workbook['管段清单']
         log_dict = rg.get_col_in_sheet(sheet)
         rows = rg.get_rows_in_sheet(report_name,sheet,log_dict['报告编号'])
-        pic_g_nums:set[str]=set(sheet[log_dict['街道名称']+row].value for row in rows)
-        pic_nums:set[str]=set(sheet[log_dict['管道编码']+row].value for row in rows)
-        pic_dict['管道总图']=[f"{CONFIG['数据源所在']}\\总图\\路由_{pic_g_num}.jpg" for pic_g_num in pic_g_nums if os.path.exists(f"{CONFIG['数据源所在']}\\总图\\路由_{pic_g_num}.jpg")]    
-        pic_dict['管道分图']=[f"{CONFIG['数据源所在']}\\路由图\\管线_{pic_num}.jpg" for pic_num in pic_nums]
-       
+        # pic_g_nums:set[str]=set(sheet[log_dict['街道名称']+row].value for row in rows)
+        pic_names:set[str]=set(sheet[log_dict['管道名称']+row].value for row in rows)
+        # pic_nums:set[str]=set(sheet[log_dict['管道编码']+row].value for row in rows)
+        # pic_dict['管道总图']=[f"{CONFIG['数据源所在']}\\总图\\路由_{pic_g_num}.jpg" for pic_g_num in pic_g_nums if os.path.exists(f"{CONFIG['数据源所在']}\\总图\\路由_{pic_g_num}.jpg")]    
+        # pic_dict['管道分图']=[f"{CONFIG['数据源所在']}\\路由图\\管线_{pic_num}.jpg" for pic_num in pic_nums]
+        pic_dict['管道总图']=[f"{CONFIG['数据源所在']}\\空港路由图\\空港概览.png" ]    
+        pic_dict['管道分图']=[f"{CONFIG['数据源所在']}\\空港路由图\\{pic_name}.jpg" for pic_name in pic_names]
     return pic_dict
 
     
@@ -941,10 +943,10 @@ def do_replace_all_pic(doc,pic_dict:dict,):
             j+=1
         elif tag == '管道总图':
             if CONFIG['是否写入管道路由图'] and pic_dict['管道总图']:
-                rg.replace_pictue(doc,pic_dict['管道总图'][0],shape,580)
+                rg.replace_pictue(doc,pic_dict['管道总图'][0],shape,580,True)
         elif tag == '管道分图':
             if CONFIG['是否写入管道路由图']:
-                rg.replace_pictue(doc,pic_dict['管道分图'][k],shape,580) 
+                rg.replace_pictue(doc,pic_dict['管道分图'][k],shape,580,True) 
             k+=1
         else:
             pass
@@ -1088,7 +1090,7 @@ if __name__ == '__main__':
         word = win32.Dispatch("Kwps.Application")
     word.Visible = False  # 不显示 Word 窗口，加快处理速度
     word.DisplayAlerts = 0  # 关闭警告信息
-    # 全局关闭拼写/语法检查
+    #   全局关闭拼写/语法检查
     word.Options.CheckSpellingAsYouType = False   # 关闭实时拼写检查
     word.Options.CheckGrammarAsYouType = False    # 关闭实时语法检查
     word.Options.ContextualSpeller = False        # 关闭上下文拼写检查（Word 2010+）

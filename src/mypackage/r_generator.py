@@ -6,6 +6,7 @@ from openpyxl.worksheet.worksheet import Worksheet
 from openpyxl.cell.cell import Cell
 import win32com.client as win32
 import os
+from pathlib import Path
 import winreg
 from .LOG_DATA import LOG_DICT
 
@@ -202,8 +203,9 @@ def get_col_in_sheet( sheet:Worksheet, row:str = '1',type:str ='str')->dict[str,
             log_dict[cell.value] = cell.column
     return log_dict
 
-def replace_pictue(doc,image_path:str,shape,max_size:int =40)->None:
-    if os.path.exists(image_path):   
+def replace_pictue(doc,image_path:str,shape,max_size:int =40,Insert_caption:bool=False)->None:
+    """文件接口、图片路径、图片接口、尺寸、是否插入题注"""
+    if Path(image_path).exists():   
         # 替换为实际图片
         range_to_replace = shape.Range
         # 删除原图
@@ -215,7 +217,14 @@ def replace_pictue(doc,image_path:str,shape,max_size:int =40)->None:
             SaveWithDocument=1,  # True 的值为 1
             Range=range_to_replace
         )
-
+        if Insert_caption:
+            # shape.Range.InsertAfter('\n')   
+            rng  = doc.Bookmarks(r'\EndOfDoc').Range 
+            rng.SetRange(shape.Range.End, shape.Range.End) 
+            rng.Text ='\n'+ Path(image_path).stem    
+            rng.Style = '题注'               # 套上 Word 内置“题注”样式
+            rng.ParagraphFormat.Alignment = 1  
+        
         # 获取原图片的宽度和高度
         original_width = shape.Width
         original_height = shape.Height
