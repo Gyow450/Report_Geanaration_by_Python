@@ -13,15 +13,15 @@ import win32com.client as win32
 import os
 import traceback
 import math
-from mypackage import r_generator as rg
-from mypackage.LOG_DATA  import LOG_DICT,RISKY_EVA_C,RISKY_EVA_S
-from mypackage import interraction_terminal
+from src.mypackage import r_generator as rg
+from src.mypackage.LOG_DATA  import LOG_DICT,RISKY_EVA_C,RISKY_EVA_S
+from src.mypackage import interraction_terminal
 
 
 """=========================编辑生成全部用于替换的列表索引文件replacements======================"""
 
 def expand_all_tables(workbook:Workbook, doc, report_name:str)->dict[str,list[int]]:
-    """按照读取到的分项记录数量，复制报告页张数。返回穿跨越的组织数量列表"""
+    """按照读取到的分项记录数量，复制报告页张数。返回宏观、穿跨越的多页组织数量列表"""
     f_dict:dict[str,list[int]]={}
     #   资料审查
     sheet=workbook['管段清单']
@@ -97,25 +97,25 @@ def do_replace(doc , replacements1:list[tuple[str,str]],replacements2:list[tuple
 
 #   签字函数
 def make_sign_dig_log(workbook:Workbook,doc,report_name:str,path:str,times_dict:dict[str,list[int]])->dict:
-    """编制签名图片、开挖图片、路由图替换的索引"""
+    """编制签名图片、开挖图片、路由图替换的索引，依照输入的分项扩张字典来生成签字索引"""
     # 签资料审查：遍历所有的宏观和开挖记录检验人员，通过集合无序化，资料最多签2人
     sign_dict:dict = {}
     all_names:set[str] = set()
     sheet = workbook['宏观检查记录']
-    dict_log:dict[str,str] = rg.get_col_in_sheet(sheet)
-    rows:list[str] =rg.get_rows_in_sheet(report_name,sheet,dict_log['报告编号'])
+    log_dict:dict[str,str] = rg.get_col_in_sheet(sheet)
+    rows:list[str] =rg.get_rows_in_sheet(report_name,sheet,log_dict['报告编号'])
     for row in rows:
-        if sheet[dict_log['检验人员']+row].value:
-            names:list[str] =sheet[dict_log['检验人员']+row].value.split(',')
+        if sheet[log_dict['检验人员']+row].value:
+            names:list[str] =sheet[log_dict['检验人员']+row].value.split(',')
         for name in names:
             all_names.add(name)
 
     sheet = workbook['开挖检测记录']
-    dict_log:dict[str,str] = rg.get_col_in_sheet(sheet)
-    rows:list[str] =rg.get_rows_in_sheet(report_name,sheet,dict_log['报告编号'])
+    log_dict:dict[str,str] = rg.get_col_in_sheet(sheet)
+    rows:list[str] =rg.get_rows_in_sheet(report_name,sheet,log_dict['报告编号'])
     for row in rows:
-        if sheet[dict_log['检验人员']+row].value:
-            names:list[str] =sheet[dict_log['检验人员']+row].value.split(',')
+        if sheet[log_dict['检验人员']+row].value:
+            names:list[str] =sheet[log_dict['检验人员']+row].value.split(',')
         else:
             names=[]
         for name in names:
@@ -127,12 +127,12 @@ def make_sign_dig_log(workbook:Workbook,doc,report_name:str,path:str,times_dict:
 
     # 签宏观检查报告
     sheet =workbook['宏观检查记录']
-    dict_log = rg.get_col_in_sheet(sheet)
-    rows = rg.get_rows_in_sheet(report_name,sheet,dict_log['报告编号'])
+    log_dict = rg.get_col_in_sheet(sheet)
+    rows = rg.get_rows_in_sheet(report_name,sheet,log_dict['报告编号'])
     for lst,row in enumerate(rows):
         names_set:set[str] = set()
-        if  sheet[dict_log['检验人员']+row].value:
-            for name in sheet[dict_log['检验人员']+row].value.split(', '):
+        if  sheet[log_dict['检验人员']+row].value:
+            for name in sheet[log_dict['检验人员']+row].value.split(', '):
                 names_set.add(name)
         lenth = len(names_set)
         temp_list = list(names_set)
@@ -143,14 +143,14 @@ def make_sign_dig_log(workbook:Workbook,doc,report_name:str,path:str,times_dict:
 
     #   签开挖检验报告
     sheet =workbook['开挖检测记录']
-    dict_log = rg.get_col_in_sheet(sheet)
-    rows = rg.get_rows_in_sheet(report_name,sheet,dict_log['报告编号'])
+    log_dict = rg.get_col_in_sheet(sheet)
+    rows = rg.get_rows_in_sheet(report_name,sheet,log_dict['报告编号'])
     sign_dict['开挖']=[] 
     for row in rows:
-        sign_dict['开挖'].append(sheet[dict_log['记录自编号']+row].value) 
+        sign_dict['开挖'].append(sheet[log_dict['记录自编号']+row].value) 
         names_set = set()
-        if sheet[dict_log['检验人员']+row].value:
-            for name in sheet[dict_log['检验人员']+row].value.split(','):
+        if sheet[log_dict['检验人员']+row].value:
+            for name in sheet[log_dict['检验人员']+row].value.split(','):
                 names_set.add(name)
         lenth = len(names_set)
         temp_list = list(names_set)
@@ -233,6 +233,7 @@ def make_replacement_index(workbook:Workbook,report_name:str)->dict:
     
     #   宏观检查记录
     replacements['宏观检查记录']=[]
+    replacements['宏观人员']=[]
     temp_list:list[tuple]= []
     sheet =workbook['宏观检查记录']
     log_dict:dict = rg.get_col_in_sheet(sheet)
@@ -240,8 +241,8 @@ def make_replacement_index(workbook:Workbook,report_name:str)->dict:
     for row in rows:
         temp_list=[]
         record_num = sheet[log_dict['记录自编号']+row].value
-        son_rows = rg.get_rows_in_sheet(record_num,sheet,log_dict['所属记录编号'])
-        temp_count = 0
+        son_rows = rg.get_rows_in_sheet(record_num,sheet,log_dict['所属记录编号'])  # 获取子记录行索引
+        temp_count=0
         for son_row in son_rows:
             key_str:str = sheet[log_dict['检查项目类别']+son_row].value
             keys = key_str.split(', ')
@@ -272,7 +273,7 @@ def make_replacement_index(workbook:Workbook,report_name:str)->dict:
                     (f"&检查结果{temp_count%14}",checked),
 
                 ]
-        temp_head_list = [
+        temp_head_list = [  # 表头部分的固定内容
                     ('+管道名称',global_name),
                     ('+管段',sheet[log_dict['管段（桩号）']+row].value),
                     ('+管道编号',sheet[log_dict['管道编号']+row].value),
@@ -295,10 +296,12 @@ def make_replacement_index(workbook:Workbook,report_name:str)->dict:
                     (f"&检查结果{n}",'/'),
                 ]
             replacements['宏观检查记录'].append(temp_head_list+and_list) 
+            replacements['宏观人员'].append(sheet[log_dict['检验人员']+row].value.split(','))
 
     
     #   开挖检验报告
     replacements['开挖检验记录']=[]
+    replacements['开挖人员']=[]
     sheet = workbook['开挖检测记录']
     log_dict = rg.get_col_in_sheet(sheet)  #获取表头索引
     
@@ -318,9 +321,11 @@ def make_replacement_index(workbook:Workbook,report_name:str)->dict:
         v2 = rg.check_text(sheet[log_dict['结论']+row].value)
         temp_list += [('+备注',f"备注：{v1}根据GB/T 43922-2024《在役聚乙烯燃气管道检验与评价》安全状况等级评定为{v2}。")]
         replacements['开挖检验记录'].append(temp_list)
+        replacements['开挖人员'].append(sheet[log_dict['检验人员']+row].value.split(','))
     
     #   穿、跨越检查
     replacements['穿、跨越检查记录'] = []
+    replacements['穿、跨越人员'] = []
     sheet =workbook['宏观检查记录']
     log_dict = rg.get_col_in_sheet(sheet)
     rows = rg.get_rows_in_sheet(report_name,sheet,log_dict['报告编号'])
@@ -420,6 +425,7 @@ def make_replacement_index(workbook:Workbook,report_name:str)->dict:
                             ('$备注1','/')
                         ]
                 replacements['穿、跨越检查记录'].append(temp_list)
+                replacements['穿、跨越人员'].append(sheet[log_dict['检验人员']+row].value.split(','))
     # 风险评估
     risk_point_s:dict[str,list[int]]={}
     risk_point_c:dict[str,list[int]]={}
@@ -691,7 +697,7 @@ def do_replace_all_pic(doc,pic_dict:dict,path:str):
             if pic_dict['签字'][i]=='空白':
                 pass
             else:
-                rg.replace_pictue(doc,f"{config['签名图片所在']}\\{pic_dict['签字'][i]}.png",shape)
+                rg.replace_pictue(doc,f"{CONFIG['签名图片所在']}\\{pic_dict['签字'][i]}.png",shape)
             i+=1
         elif tag == '开挖':
             for ex_name in ['.jpg','.png','.jpeg']:
@@ -699,7 +705,7 @@ def do_replace_all_pic(doc,pic_dict:dict,path:str):
                 # f_path:str = f"{path}\\新繁\\开挖照片\\{pic_dict['开挖'][j]}{ex_name}"
                 # f_path:str = f"{path}\\大丰\\开挖照片\\{pic_dict['开挖'][j]}{ex_name}"
                 # f_path:str = f"{path}\\郫三司\\开挖照片\\{pic_dict['开挖'][j]}{ex_name}"
-                f_path:str = f"{config['数据源所在']}\\开挖照片\\{pic_dict['开挖'][j]}{ex_name}"
+                f_path:str = f"{CONFIG['数据源所在']}\\开挖照片\\{pic_dict['开挖'][j]}{ex_name}"
                 if os.path.exists(f_path):
                     rg.replace_pictue(doc,f_path,shape,120)
                     break
@@ -709,10 +715,9 @@ def do_replace_all_pic(doc,pic_dict:dict,path:str):
 
     
 def solo_main(report_name:str,workbook:Workbook,word,path:str):
-    global config
     replacements_dict:dict = {}
     replacements_list:list[tuple] = []
-    doc_modle_path = f"{config['模板文件']}"
+    doc_modle_path = f"{CONFIG['模板文件']}"
     try:
         doc = word.Documents.Open(doc_modle_path)
         
@@ -742,7 +747,7 @@ def solo_main(report_name:str,workbook:Workbook,word,path:str):
         # 更新文档中的所有域
         doc.Fields.Update()
         
-        output_file = f"{config['输出文件']}\\{report_name}原始记录.docx"
+        output_file = f"{CONFIG['输出文件']}\\{report_name}原始记录.docx"
         doc.SaveAs2(output_file, FileFormat=16)  # 16 表示docx 17 表示 PDF
         # output_file = f"{config['输出文件']}\\{report_name}原始记录.pdf"
         # doc.SaveAs2(output_file, FileFormat=17)  
@@ -751,7 +756,7 @@ def solo_main(report_name:str,workbook:Workbook,word,path:str):
     except Exception as ex:
         traceback.print_exc()
         if doc is not None:
-            doc.SaveAs2(f"{config['输出文件']}\\error_{report_name}.docx",FileFormat =16)
+            doc.SaveAs2(f"{CONFIG['输出文件']}\\error_{report_name}.docx",FileFormat =16)
             print(f"{report_name}发生错误！")
             doc.Saved =True
             raise ex
@@ -760,19 +765,20 @@ def solo_main(report_name:str,workbook:Workbook,word,path:str):
             doc.Close(SaveChanges=False)
 
 if __name__ == '__main__':
-    config:dict[str,str]={
+    CONFIG:dict[str,str]={
         '模板文件':'E:\\BaiduSyncdisk\\成渝特检\\模板文件与生成程序\\记录、报告生成\\PE管\\PE管原始记录模板.docx',
         '数据源所在':'E:\\BaiduSyncdisk\\成渝特检\\模板文件与生成程序\\记录、报告生成\\PE管\\管网840',
         '签名图片所在':'E:\\BaiduSyncdisk\\成渝特检\\模板文件与生成程序\\记录、报告生成\\PE管\\电子签名',
         '输出文件':'E:\\BaiduSyncdisk\\成渝特检\\模板文件与生成程序\\记录、报告生成\\PE管\\输出文件',
     }
     set_list:list[tuple[int,str,str]]=[
-        (2,'模板文件','docx'),
-        (0,'数据源所在',''),
-        (0,'签名图片所在',''),
-        (0,'输出文件所在',''),
+        (2,'模板文件','docx',r'E:\BaiduSyncdisk\成渝特检\模板文件与生成程序\记录、报告生成\PE管\PE管原始记录模板.docx'),
+        (0,'数据源所在','',r'E:\BaiduSyncdisk\成渝特检\模板文件与生成程序\记录、报告生成\PE管\管网840'),
+        (0,'签名图片所在','',r'E:\BaiduSyncdisk\成渝特检\模板文件与生成程序\记录、报告生成\PE管\电子签名'),
+        (0,'输出文件所在','',r'E:\BaiduSyncdisk\成渝特检\模板文件与生成程序\记录、报告生成\PE管\输出文件'),
+        (3,'是否生成签字',False,False), 
     ]
-    # config = interraction_terminal.set_argumments(set_list)
+    CONFIG = interraction_terminal.set_argumments(set_list)
     app_type = rg.check_office_installation()
     if app_type == None:
         print('未找到合适的应用以打开文档')
@@ -784,7 +790,7 @@ if __name__ == '__main__':
     # workbook:Workbook = openpyxl.load_workbook(f"{path}\\大丰\\大丰_原始数据.xlsx" )
     # workbook:Workbook = openpyxl.load_workbook(f"{path}\\管网840\\管网840_原始数据.xlsx" )
     # workbook:Workbook = openpyxl.load_workbook(f"{path}\\郫三司\\郫三司_原始数据.xlsx" )
-    workbook:Workbook = openpyxl.load_workbook(f"{config['数据源所在']}\\原始数据.xlsx" )
+    workbook:Workbook = openpyxl.load_workbook(f"{CONFIG['数据源所在']}\\原始数据.xlsx" )
 
     print('读取模板文件')
     
@@ -800,22 +806,16 @@ if __name__ == '__main__':
     word.Options.ContextualSpeller = False        # 关闭上下文拼写检查（Word 2010+）
     #   初始化完成
     sheet=workbook['管道基本信息']
-    all_names:list[str]=[]
     log_dict =rg.get_col_in_sheet(sheet)
-    for cell in sheet[log_dict['报告编号']]:    # 遍历静态台账里所有编号
-        v:str = cell.value
-        if v is not None:
-            all_names.append(v)
-        else:
-            break
+    all_names:set[str]=set(cell.value for cell in sheet[log_dict['报告编号']] if cell.value.startswith('DGB'))
     
-    for report_name in all_names[1:]:
+    for report_name in sorted(list(all_names[:])):
         try:
             solo_main(report_name,workbook,word,path)
         except Exception as e:
             print('有错误发生')
-        finally:
-            continue
+        # finally:
+        #     continue
     # report_name = 'DGB2025001CD'
     # solo_main(report_name,workbook,word,path)
 

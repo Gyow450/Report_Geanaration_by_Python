@@ -7,7 +7,7 @@ import tkinter as tk
 from tkinter import filedialog
 
 def set_argumments(anything:list[tuple[int,str,str|bool,str|bool]])->dict[str,str|bool]:
-    """按照特征码，关键字，扩展名|正则表达式构成元组"""
+    """按照（特征码，关键字，扩展名|正则表达式，初始值）构成元组"""
     def set_dir_value(key_word):
         final_dict[key_word]=filedialog.askdirectory(title=f'选择{key_word}文件夹')
         any_var[key_word].set(final_dict[key_word])
