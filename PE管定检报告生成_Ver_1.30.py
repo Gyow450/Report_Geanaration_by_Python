@@ -180,7 +180,7 @@ def sort_out_data(workbook:Workbook,report_name:str)->dict[str,dict[tuple[str],l
     log_dict= rg.get_col_in_sheet(sheet)
     rows = rg.get_rows_in_sheet(report_name,sheet,log_dict['报告编号'])
     #  管段（编码，名称）元组集合
-    gd_set:set[tuple[str]]=set((sheet[log_dict['管道编码']+row].value,sheet[log_dict['管道名称']+row].value) for row in rows)        
+    gd_set:set[tuple[str]]=set((sheet[log_dict['管道编码']+row].value,sheet[log_dict['定检管道名称']+row].value) for row in rows)        
     
     sheet = workbook['宏观检查记录']
     log_dict= rg.get_col_in_sheet(sheet)
@@ -244,8 +244,8 @@ def make_pic_log(workbook:Workbook,report_name:str,kw_dict:dict[str,list[str]])-
         # pic_nums:set[str]=set(sheet[log_dict['管道编码']+row].value for row in rows)
         # pic_dict['管道总图']=[f"{CONFIG['数据源所在']}\\总图\\路由_{pic_g_num}.jpg" for pic_g_num in pic_g_nums if os.path.exists(f"{CONFIG['数据源所在']}\\总图\\路由_{pic_g_num}.jpg")]    
         # pic_dict['管道分图']=[f"{CONFIG['数据源所在']}\\路由图\\管线_{pic_num}.jpg" for pic_num in pic_nums]
-        pic_dict['管道总图']=[f"{CONFIG['数据源所在']}\\空港路由图\\空港概览.png" ]    
-        pic_dict['管道分图']=[f"{CONFIG['数据源所在']}\\空港路由图\\{pic_name}.jpg" for pic_name in pic_names]
+        pic_dict['管道总图']=[f"{CONFIG['数据源所在']}\\路由图\\大丰概览.png" ]    
+        pic_dict['管道分图']=[f"{CONFIG['数据源所在']}\\路由图\\{pic_name}.jpg" for pic_name in pic_names]
     return pic_dict
 
     
@@ -256,7 +256,7 @@ def make_replacement_index(workbook:Workbook,report_name:str,gd_dict:dict[str,di
     EQ_SET:dict[str,tuple[str]]={
         '可燃气体检测仪':('CYTJ-G-122','CYTJ-G-124','CYTJ-G-125','CYTJ-G-126','CYTJ-G-120','4940','11131','4917','7634','11143','11153'),
         '钢卷尺':('CYTJ-Y-068','CYTJ-Y-067','R001','R002','R003','R004'),
-        'APL声学PE管道探测仪':('APL1270','APL1271','APL1159'), 
+        # 'APL声学PE管道探测仪':('APL1270','APL1271','APL1159'), 
         '焊接检验尺':('CYTJ-Y-044','CYTJ-Y-045') ,
     }
     replacements:dict[str,list]={}
@@ -946,7 +946,7 @@ def do_replace_all_pic(doc,pic_dict:dict,):
                 rg.replace_pictue(doc,pic_dict['管道总图'][0],shape,580,True)
         elif tag == '管道分图':
             if CONFIG['是否写入管道路由图']:
-                rg.replace_pictue(doc,pic_dict['管道分图'][k],shape,580,True) 
+                rg.replace_pictue(doc,pic_dict['管道分图'][k],shape,580) 
             k+=1
         else:
             pass
@@ -1004,11 +1004,13 @@ def solo_main(report_name:str,workbook:Workbook,word):
         print('生成替换用文本及签字索引')
         replacements_dict |= make_replacement_index(workbook,report_name,gd_dict)
         replacements_list += make_all_replacement_index(workbook,report_name,gd_dict) 
-        sign_dict=make_sign_log(workbook,report_name,replacements_dict['检验人员'])
+        if CONFIG['是否生成签字']:
+            sign_dict=make_sign_log(workbook,report_name,replacements_dict['检验人员'])
 
         print('替换内容及签名标题')
         do_replace( doc , replacements_dict['文本'],replacements_list )
-        do_change_sign_tag(doc,sign_dict)
+        if CONFIG['是否生成签字']:
+            do_change_sign_tag(doc,sign_dict)
         
         if CONFIG['是否生成签字']:
             sign_only.sign_by_pic_name(doc,CONFIG['签名图片所在'])
@@ -1065,10 +1067,10 @@ def solo_main(report_name:str,workbook:Workbook,word):
 
 if __name__ == '__main__':
     set_list:list[tuple[int,str,str|bool,str|bool]]=[
-        (2,'模板文件','docx',r'E:\BaiduSyncdisk\成渝特检\模板文件与生成程序\记录、报告生成\PE管\空港\PE管定检报告模版_Ver_1.30_手签名.docx'),
-        (0,'数据源所在','',r'E:\BaiduSyncdisk\成渝特检\模板文件与生成程序\记录、报告生成\PE管\空港'),
+        (2,'模板文件','docx',r'E:\BaiduSyncdisk\成渝特检\模板文件与生成程序\记录、报告生成\PE管\大丰二期\PE管定检报告模版_Ver_1.31_手签名.docx'),
+        (0,'数据源所在','',r'E:\BaiduSyncdisk\成渝特检\模板文件与生成程序\记录、报告生成\PE管\大丰二期'),
         (0,'签名图片所在','',r'E:\BaiduSyncdisk\成渝特检\模板文件与生成程序\记录、报告生成\PE管\电子签名'),
-        (0,'输出文件所在','',r'E:\BaiduSyncdisk\成渝特检\模板文件与生成程序\记录、报告生成\PE管\空港\输出'),
+        (0,'输出文件所在','',r'E:\BaiduSyncdisk\成渝特检\模板文件与生成程序\记录、报告生成\PE管\大丰二期\输出'),
         (3,'是否生成概述段落',False,True),
         (3,'是否写入管道清单',False,True),
         (3,'是否写入管道路由图',False,True),
@@ -1098,9 +1100,11 @@ if __name__ == '__main__':
     sheet=workbook['管道基本信息']
     all_names:list[str]=[]
     log_dict =rg.get_col_in_sheet(sheet)
-    rows = rg.get_rows_in_sheet('一',sheet,log_dict['批次'])
-    all_names=set(sheet[log_dict['报告编号']+row].value for row in rows if sheet[log_dict['报告编号']+row].value)   # 遍历静态台账里所有编号    
-    for report_name in sorted(list(set(all_names)),reverse=False)[:]:
+    # rows = rg.get_rows_in_sheet('一',sheet,log_dict['批次'])
+    # all_names=set(sheet[log_dict['报告编号']+row].value for row in rows if sheet[log_dict['报告编号']+row].value)   # 遍历静态台账里所有编号    
+    all_names=[cell.value for cell in sheet["A"] if cell.value]
+    # for report_name in sorted(list(set(all_names)),reverse=False)[:]:
+    for report_name in all_names[1:]:
         # if os.path.exists(f"{config['输出文件所在']}\\{report_name}.docx"):
         try:
             solo_main(report_name,workbook,word)
