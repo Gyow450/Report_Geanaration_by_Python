@@ -30,8 +30,8 @@ def expand_all_tables(workbook:Workbook, doc, report_name:str)->dict[str,list[in
     times:int =len(rows)
     f_dict['资料审查']=[1]*times
     if times>1:
-        rg.copy_and_insert_report(doc , '复制资料审查', times)
-    rg.replace_text(doc, '复制资料审查','',2)  
+        rg.copy_and_insert_report_bookmark(doc , '资料审查记录', times)
+    # rg.replace_text(doc, '复制资料审查','',2)  
     
     #   宏观检查
     sheet = workbook['宏观检查记录']
@@ -50,8 +50,8 @@ def expand_all_tables(workbook:Workbook, doc, report_name:str)->dict[str,list[in
         times+=time
         f_dict['宏观检查'].append(time)
     if times>1:
-        rg.copy_and_insert_report(doc , '复制宏观检查', times)
-    rg.replace_text(doc, '复制宏观检查','',2)
+        rg.copy_and_insert_report_bookmark(doc , '宏观检查记录', times)
+    # rg.replace_text(doc, '复制宏观检查','',2)
 
     #   开挖检测
     sheet = workbook['开挖检测记录']
@@ -59,8 +59,8 @@ def expand_all_tables(workbook:Workbook, doc, report_name:str)->dict[str,list[in
     times:int = len(rg.get_rows_in_sheet(report_name , sheet ,log_dict['报告编号']))
     f_dict['开挖检测·']=[1]*times
     if times>1:
-        rg.copy_and_insert_report(doc , '复制开挖检测', times)
-    rg.replace_text(doc, '复制开挖检测','',2)  
+        rg.copy_and_insert_report_bookmark(doc , '开挖直接检测记录', times)
+    # rg.replace_text(doc, '复制开挖检测','',2)  
        
     #   穿跨越检查
     sheet = workbook['宏观检查记录']
@@ -77,8 +77,8 @@ def expand_all_tables(workbook:Workbook, doc, report_name:str)->dict[str,list[in
         else:
             f_dict['穿跨越检查'].append(0)
     if times>1:
-        rg.copy_and_insert_report(doc , '复制穿跨越检查', times)
-    rg.replace_text(doc, '复制穿跨越检查','',2)  
+        rg.copy_and_insert_report_bookmark(doc , '穿、跨越检查记录', times)
+    # rg.replace_text(doc, '复制穿跨越检查','',2)  
     return f_dict
     
     #   整理删除页面
@@ -145,9 +145,9 @@ def make_sign_dig_log(workbook:Workbook,doc,report_name:str,path:str,times_dict:
     sheet =workbook['开挖检测记录']
     log_dict = rg.get_col_in_sheet(sheet)
     rows = rg.get_rows_in_sheet(report_name,sheet,log_dict['报告编号'])
-    sign_dict['开挖']=[] 
+    sign_dict['开挖检验照片']=[] 
     for row in rows:
-        sign_dict['开挖'].append(sheet[log_dict['记录自编号']+row].value) 
+        sign_dict['开挖检验照片'].append(sheet[log_dict['记录自编号']+row].value) 
         names_set = set()
         if sheet[log_dict['检验人员']+row].value:
             for name in sheet[log_dict['检验人员']+row].value.split(','):
@@ -279,9 +279,11 @@ def make_replacement_index(workbook:Workbook,report_name:str)->dict:
                     ('+管道编号',sheet[log_dict['管道编号']+row].value),
                     ('+设备名称型号',sheet[log_dict['设备名称型号']+row].value),
                     ('+设备编号',sheet[log_dict['设备编号']+row].value),
-                    ('+检验日期',sheet[log_dict['检验日期']+row].value),
+                   
                     ('+环境条件',sheet[log_dict['环境条件']+row].value),
                     ]
+        if CONFIG['是否检验签字']:
+            temp_head_list+=[ ('+检验日期',sheet[log_dict['检验日期']+row].value),]
         any_count=math.ceil(len(temp_list)/5/14)
         for i in range(any_count):
             and_list = temp_list[70*i:70*(i+1)]
@@ -313,6 +315,8 @@ def make_replacement_index(workbook:Workbook,report_name:str)->dict:
         temp_list += rg.make_change_text_for_heading(sheet,row,'开挖检测记录',log_dict)
         temp_list += [('+管道名称',f"{global_name}（{sheet[log_dict['探坑位置']+row].value}）")]
         temp_list += rg.make_change_text_for_option(sheet,row,'开挖检测记录',log_dict)
+        if CONFIG['是否检验签字']:
+            temp_list+=[('+检验日期',sheet[log_dict['检验日期']+row].value)]
         v1 = sheet[log_dict['备注']+row].value
         if v1 is None:
             v1 = ''
@@ -366,10 +370,12 @@ def make_replacement_index(workbook:Workbook,report_name:str)->dict:
                 temp_list:list[tuple]=[]
                 temp_list += [      # 表头和结论
                         ('+管段',sheet[log_dict['管段（桩号）']+row].value),
-                        ('+检验日期',sheet[log_dict['检验日期']+row].value),
+                        # ('+检验日期',sheet[log_dict['检验日期']+row].value),
                         ('+环境条件',sheet[log_dict['环境条件']+row].value),
                         # ('+检查结论',f"检查结论：{b_result}"),
                         ]
+                if CONFIG['是否检验签字']:
+                    temp_list+=[('+检验日期',sheet[log_dict['检验日期']+row].value)]
                 # 跨越填表
                 temp_count = 0
                 if len(son_rows1) >0:
@@ -621,13 +627,27 @@ def make_all_replacement_index(workbook,report_name):
     sheet = workbook['风险评估']
     log_dict:dict =rg.get_col_in_sheet(sheet)
     rows:list[str] = rg.get_rows_in_sheet(report_name,sheet,log_dict['报告编号'])
-    replacements += [
-        ('+预评估日期',sheet[log_dict['评估日期']+rows[0]].value),
-        ('+资料审查日期',sheet[log_dict['评估日期']+rows[0]].value),
-        ('+最早日期',sheet[log_dict['评估日期']+rows[0]].value),
-        ('+再评估日期',sheet[log_dict['评估日期']+rows[1]].value),
-        ('+完成日期',sheet[log_dict['评估日期']+rows[1]].value),
-    ]
+    if CONFIG['是否检验签字']:
+        replacements += [
+            ('+预评估日期',sheet[log_dict['评估日期']+rows[0]].value),
+            ('+资料审查日期',sheet[log_dict['评估日期']+rows[0]].value),
+            ('+最早日期',sheet[log_dict['评估日期']+rows[0]].value),
+            ('+再评估日期',sheet[log_dict['评估日期']+rows[1]].value),
+            ('+完成日期',sheet[log_dict['评估日期']+rows[1]].value),
+        ]
+    else:
+        replacements += [
+            ('+预评估日期','年  月  日'),
+            ('+资料审查日期','年  月  日'),
+            ('+最早日期','年  月  日'),
+            ('+再评估日期','年  月  日'),
+            ('+完成日期','年  月  日'),
+            ('+检验日期','年  月  日')
+        ]
+    if CONFIG['是否审核签字']:
+        replacements += [('+审核日期',CONFIG['审核日期'])]
+    else:
+        replacements += [('+审核日期','年  月  日')]
     return replacements
 
 def do_replace_in_son_report(doc,any_dict):
@@ -647,7 +667,7 @@ def do_replace_in_son_report(doc,any_dict):
         elif title_name == '宏观检查记录':
             rg.replace_text_in_table(doc,table,any_dict['宏观检查记录'][i],'宏观检查记录生成')  
             i+=1
-        elif title_name == '开挖检测记录':
+        elif title_name == '开挖检验记录':
             rg.replace_text_in_table(doc,table,any_dict['开挖检验记录'][j],'开挖检测记录生成')  
             j+=1
         elif title_name == '穿、跨越检查记录':
@@ -693,25 +713,29 @@ def do_replace_all_pic(doc,pic_dict:dict,path:str):
     k:int = 0
     for shape in doc.InlineShapes:
         tag:str = shape.Title 
-        if tag == '签字':
-            if pic_dict['签字'][i]=='空白':
-                pass
-            else:
-                rg.replace_pictue(doc,f"{CONFIG['签名图片所在']}\\{pic_dict['签字'][i]}.png",shape)
-            i+=1
-        elif tag == '开挖':
+        if tag == '开挖检验照片':
             for ex_name in ['.jpg','.png','.jpeg']:
                 # f_path:str = f"{path}\\管网840\\开挖照片\\{pic_dict['开挖'][j]}{ex_name}"
                 # f_path:str = f"{path}\\新繁\\开挖照片\\{pic_dict['开挖'][j]}{ex_name}"
                 # f_path:str = f"{path}\\大丰\\开挖照片\\{pic_dict['开挖'][j]}{ex_name}"
                 # f_path:str = f"{path}\\郫三司\\开挖照片\\{pic_dict['开挖'][j]}{ex_name}"
-                f_path:str = f"{CONFIG['数据源所在']}\\开挖照片\\{pic_dict['开挖'][j]}{ex_name}"
+                f_path:str = f"{CONFIG['数据源所在']}\\开挖照片\\{pic_dict['开挖检验照片'][j]}{ex_name}"
                 if os.path.exists(f_path):
                     rg.replace_pictue(doc,f_path,shape,120)
                     break
             j+=1
         else:
-            pass
+            if CONFIG['是否检验签字']:
+                if tag == '签字':
+                    if pic_dict['签字'][i]=='空白':
+                        pass
+                    else:
+                        rg.replace_pictue(doc,f"{CONFIG['签名图片所在']}\\{pic_dict['签字'][i]}.png",shape)
+                    i+=1
+            if CONFIG['是否审核签字']:
+                if tag == '审核签字':
+                    rg.replace_pictue(doc,f"{CONFIG['签名图片所在']}\\{CONFIG['审核人']}.jpg",shape)
+        
 
     
 def solo_main(report_name:str,workbook:Workbook,word,path:str):
@@ -747,7 +771,7 @@ def solo_main(report_name:str,workbook:Workbook,word,path:str):
         # 更新文档中的所有域
         doc.Fields.Update()
         
-        output_file = f"{CONFIG['输出文件']}\\{report_name}原始记录.docx"
+        output_file = f"{CONFIG['输出文件所在']}\\{report_name}原始记录.docx"
         doc.SaveAs2(output_file, FileFormat=16)  # 16 表示docx 17 表示 PDF
         # output_file = f"{config['输出文件']}\\{report_name}原始记录.pdf"
         # doc.SaveAs2(output_file, FileFormat=17)  
@@ -756,7 +780,7 @@ def solo_main(report_name:str,workbook:Workbook,word,path:str):
     except Exception as ex:
         traceback.print_exc()
         if doc is not None:
-            doc.SaveAs2(f"{CONFIG['输出文件']}\\error_{report_name}.docx",FileFormat =16)
+            doc.SaveAs2(f"{CONFIG['输出文件所在']}\\error_{report_name}.docx",FileFormat =16)
             print(f"{report_name}发生错误！")
             doc.Saved =True
             raise ex
@@ -772,11 +796,14 @@ if __name__ == '__main__':
         '输出文件':'E:\\BaiduSyncdisk\\成渝特检\\模板文件与生成程序\\记录、报告生成\\PE管\\输出文件',
     }
     set_list:list[tuple[int,str,str]]=[
-        (2,'模板文件','docx',r'E:\BaiduSyncdisk\成渝特检\模板文件与生成程序\记录、报告生成\PE管\PE管原始记录模板.docx'),
+        (2,'模板文件','docx',r'E:\BaiduSyncdisk\成渝特检\模板文件与生成程序\记录、报告生成\PE管\管网840\PE管原始记录模板——管网第一批次.docx'),
         (0,'数据源所在','',r'E:\BaiduSyncdisk\成渝特检\模板文件与生成程序\记录、报告生成\PE管\管网840'),
         (0,'签名图片所在','',r'E:\BaiduSyncdisk\成渝特检\模板文件与生成程序\记录、报告生成\PE管\电子签名'),
-        (0,'输出文件所在','',r'E:\BaiduSyncdisk\成渝特检\模板文件与生成程序\记录、报告生成\PE管\输出文件'),
-        (3,'是否生成签字',False,False), 
+        (0,'输出文件所在','',r'E:\BaiduSyncdisk\成渝特检\模板文件与生成程序\记录、报告生成\PE管\记录文件\管网第一批次'),
+        (3,'是否检验签字',False,True), 
+        (3,'是否审核签字',False,True), 
+        (4,'审核人','','付飞'), 
+        (4,'审核日期','','2025年6月30日'), 
     ]
     CONFIG = interraction_terminal.set_argumments(set_list)
     app_type = rg.check_office_installation()
@@ -809,7 +836,7 @@ if __name__ == '__main__':
     log_dict =rg.get_col_in_sheet(sheet)
     all_names:set[str]=set(cell.value for cell in sheet[log_dict['报告编号']] if cell.value.startswith('DGB'))
     
-    for report_name in sorted(list(all_names[:])):
+    for report_name in sorted(list(all_names))[7:]:
         try:
             solo_main(report_name,workbook,word,path)
         except Exception as e:

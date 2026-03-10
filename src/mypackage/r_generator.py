@@ -362,39 +362,55 @@ def copy_and_insert_report(doc , target_text:str,times:int ,pages:int = 0):
     # 使用 GoTo 方法定位到目标页的结束位置（即下一页的起始位置）
     target_page_end = doc.GoTo(1, 1, page_number + 1 + pages).Start
     target_range = doc.Range(target_page_start, target_page_end)
-   
-    insert_text = target_range.FormattedText
-    for _ in range(0,times-1): 
-        new_page_range = doc.Range(target_page_end, target_page_end)
-        new_page_range.FormattedText= insert_text
-
-    # # 复制目标页的内容
-    # target_range.Copy()
-    # for _ in range(0,times-1):
-        
-    #     new_page_range = doc.Range(target_page_end, target_page_end)
-    #     new_page_range.Paste()
-
     
-    # # 使用 GoTo 方法定位到目标页的起始位置
-    # target_page_start = doc.GoTo(1, 1, page_number).Start  # 1 表示 wdGoToPage，1 表示 wdGoToAbsolute
-
-    # # 使用 GoTo 方法定位到目标页的结束位置（即下一页的起始位置）
-    # target_page_end = doc.GoTo(1, 1, page_number + 1 + pages).Start
-
-    # # 获取目标页的内容范围
-    # target_range = doc.Range(target_page_start, target_page_end)
-
-    # # 复制目标页的内容
-    # target_range.Copy()
-    # new_page_range = doc.Range(target_page_end, target_page_end)
-    # for _ in range(times-1):
-    #     new_page_range.Paste()
-    #     new_page_range = doc.Range(target_page_end, target_page_end)
-
+    insert_text = target_range.FormattedText
+    doc.Bookmarks.Add("InsertPos", doc.Range(target_page_end, target_page_end))
+    for i in range(0,times-1): 
+        # target_page_end = doc.GoTo(1, 1, page_number + 1 + pages + i).Start
+        # new_page_range = doc.Range(target_page_end, target_page_end)
+        # new_page_range.FormattedText= insert_text
+        # target_page_end = new_page_range.end
+        bm_range = doc.Bookmarks("InsertPos").Range
+        bm_range.FormattedText = insert_text
+        
+        # 删除旧书签，在新末尾重建（移动书签）
+        doc.Bookmarks("InsertPos").Delete()
+        doc.Bookmarks.Add("InsertPos", doc.Range(bm_range.End, bm_range.End))
+        # print(f"{i},",end="")
     # 删除控制用关键字
+    doc.Bookmarks("InsertPos").Delete()
     replace_text(doc, target_text, '' , 2)
 
+def copy_and_insert_report_bookmark(doc , bookmark:str,times:int ,pages:int = 0):
+    """复制多个整页"""
+    # selection = doc.Application.Selection
+    # selection.Find.Execute(bookmark)
+    print(bookmark+'\t数量：'+str(times))
+    # 获取目标段落所在的页码，使用整数值 3 表示 wdActiveEndPageNumber
+    page_number = doc.Bookmarks(bookmark).Range.Information(3)
+    # 使用 GoTo 方法定位到目标页的起始位置
+    target_page_start = doc.GoTo(1, 1, page_number).Start  # 1 表示 wdGoToPage，1 表示 wdGoToAbsolute
+
+    # 使用 GoTo 方法定位到目标页的结束位置（即下一页的起始位置）
+    target_page_end = doc.GoTo(1, 1, page_number + 1 + pages).Start
+    target_range = doc.Range(target_page_start, target_page_end)
+    
+    insert_text = target_range.FormattedText
+    doc.Bookmarks.Add("InsertPos", doc.Range(target_page_end, target_page_end))
+    for i in range(0,times-1): 
+        # target_page_end = doc.GoTo(1, 1, page_number + 1 + pages + i).Start
+        # new_page_range = doc.Range(target_page_end, target_page_end)
+        # new_page_range.FormattedText= insert_text
+        # target_page_end = new_page_range.end
+        bm_range = doc.Bookmarks("InsertPos").Range
+        bm_range.FormattedText = insert_text
+        
+        # 删除旧书签，在新末尾重建（移动书签）
+        doc.Bookmarks("InsertPos").Delete()
+        doc.Bookmarks.Add("InsertPos", doc.Range(bm_range.End, bm_range.End))
+        # print(f"{i},",end="")
+    # 删除控制用关键字
+    doc.Bookmarks("InsertPos").Delete()
 #   编辑表头等替换文本
 def make_change_text_for_heading(sheet:Workbook,row:str,record_type:str,log_dict:dict)->list[tuple]:
     replacements:list[tuple] = []
