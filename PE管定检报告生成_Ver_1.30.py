@@ -427,8 +427,8 @@ def make_replacement_index(workbook:Workbook,report_name:str,gd_dict:dict[str,di
                     # ('+管道名称',sheet[log_dict['管道名称']+row].value),
                     ('+管段','/'),
                     ('+管道编号',gd_name[0]),
-                    ('+设备名称型号',f"可燃气体检测仪、钢卷尺、APL声学PE管道探测仪"),
-                    ('+设备编号',f"{random.choice(EQ_SET['可燃气体检测仪'])}、{random.choice(EQ_SET['钢卷尺'])}、{random.choice(EQ_SET['APL声学PE管道探测仪'])}"),
+                    ('+设备名称型号',f"可燃气体检测仪、钢卷尺"),
+                    ('+设备编号',f"{random.choice(EQ_SET['可燃气体检测仪'])}、{random.choice(EQ_SET['钢卷尺'])}"),
                     # ('+环境',sheet[log_dict['环境条件']+row_0].value),
                     # ('+检验日期',global_date),
                     ]

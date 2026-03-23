@@ -1,5 +1,3 @@
-from fastprogress import progress_bar
-import time
-for i in  progress_bar(range(1000)):
-    time.sleep(.001)
-print('Done')
+template_s ='{x},{y}'
+a=template_s.format(x=1.1,y=5.8)
+print(a)
