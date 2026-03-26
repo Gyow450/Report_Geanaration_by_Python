@@ -1,6 +1,5 @@
 """
-    用来生成PE管定检报告
-    默认的文件名为：“PE管定检报告模版.docx”
+    匹配两页的开挖报告
     
 """
 from multiprocessing.dummy import Value
@@ -57,9 +56,9 @@ def expand_all_tables(workbook:Workbook, doc, report_name:str)->dict[str,list[in
     sheet = workbook['开挖检测记录']
     log_dict:dict = rg.get_col_in_sheet(sheet)
     times:int = len(rg.get_rows_in_sheet(report_name , sheet ,log_dict['报告编号']))
-    f_dict['开挖检测·']=[1]*times
+    f_dict['开挖检测']=[1]*times
     if times>1:
-        rg.copy_and_insert_report_bookmark(doc , '开挖直接检测记录', times)
+        rg.copy_and_insert_report_bookmark(doc , '开挖直接检验记录', times,1)   # 这里复制两页
     # rg.replace_text(doc, '复制开挖检测','',2)  
        
     #   穿跨越检查
@@ -69,7 +68,7 @@ def expand_all_tables(workbook:Workbook, doc, report_name:str)->dict[str,list[in
     f_dict['穿跨越检查']=[]
     times:int = 0
     for row in rows:
-        count:str|None =sheet[log_dict['穿越总结']+row].value
+        count:str|None =sheet[log_dict['穿跨越类型']+row].value
         if count:
             ctrl_value:int =max(math.ceil(count.count('穿越')/10),math.ceil(count.count('跨越')/8))
             times += ctrl_value
@@ -158,6 +157,9 @@ def make_sign_dig_log(workbook:Workbook,doc,report_name:str,path:str,times_dict:
         sign_dict['签字'] += temp_list[:2]  
         if lenth<2:
             sign_dict['签字'] += ['空白']*(2-lenth)
+        sign_dict['签字'] += temp_list[:2]  
+        if lenth<2:
+            sign_dict['签字'] += ['空白']*(2-lenth)
 
 
     #   穿跨越记录
@@ -189,7 +191,7 @@ def make_sign_dig_log(workbook:Workbook,doc,report_name:str,path:str,times_dict:
 
 
 #   完成索引
-def make_replacement_index(workbook:Workbook,report_name:str)->dict:
+def make_replacement_index(workbook:Workbook,report_name:str,gd_dict:dict[str,str])->dict:
     """全体替换内容，主要调整函数"""
     replacements:dict={}
     replacements['文本'] = []
@@ -233,28 +235,27 @@ def make_replacement_index(workbook:Workbook,report_name:str)->dict:
         #     temp_list+=[('+技术档案资料审查','无资料')]  
         temp_list+=[    #   新繁，大丰
                 ('+管段名称',sheet[log_dict['工程名称']+row].value),
-                ('+运行状况资料审查','有日常运行维护记录，未见管道历次年度检查报告'),
+                # ('+运行状况资料审查','有日常运行维护记录，未见管道历次年度检查报告'),
                 # ('+资料审查问题记载','除以上问题外，未见管道历次年度检查资料，本次为首次全面检验'),
                 # ('+检验日期','2024年07月09日'),
                 ('+长度',f'{sheet[log_dict['长度（m）']+row].value}m'),
-                
             ] 
-        lst_no=int(sheet[log_dict['序号']+row].value)
-        last_report_no=['GD202200194','GD202200195','GD202200196','GD202200197','GD202200198']
-        if lst_no in [67,114,694,695,697,698,699,700] or (lst_no>=679 and lst_no<691):  #  新繁
-        # if lst_no in [5,86,169]:  #  大丰
-            temp_list+=[
-                ('+安全管理资料审查','有安全管理规章制度与安全操作规则、该管道为首次检验，有监检报告'),
-                ('+检验周期','本次为首次检验')
-                ] 
-        else:
-            temp_list+=[
-                ('+安全管理资料审查','有安全管理规章制度与安全操作规则、有上次定期检验报告'),
-                ('+检验周期','3年'),
-                ('+上次检验日期','2022年6月'),
-                # ('+上次报告编号','GD2023000009'),   #   大丰
-                ('+上次报告编号',random.choice(last_report_no)),   #   新繁
-                ] 
+        # lst_no=int(sheet[log_dict['序号']+row].value)
+        # last_report_no=['GD202200194','GD202200195','GD202200196','GD202200197','GD202200198']
+        # if lst_no in [67,114,694,695,697,698,699,700] or (lst_no>=679 and lst_no<691):  #  新繁
+        # # if lst_no in [5,86,169]:  #  大丰
+        #     temp_list+=[
+        #         ('+安全管理资料审查','有安全管理规章制度与安全操作规则、该管道为首次检验，有监检报告'),
+        #         ('+检验周期','本次为首次检验')
+        #         ] 
+        # else:
+        #     temp_list+=[
+        #         ('+安全管理资料审查','有安全管理规章制度与安全操作规则、有上次定期检验报告'),
+        #         ('+检验周期','3年'),
+        #         ('+上次检验日期','2022年6月'),
+        #         # ('+上次报告编号','GD2023000009'),   #   大丰
+        #         ('+上次报告编号',random.choice(last_report_no)),   #   新繁
+        #         # ] 
         dc=sheet[log_dict['设计单位']+row].value
         ac=sheet[log_dict['安装单位']+row].value
         fdate=sheet[log_dict['竣工验收日期']+row].value
@@ -273,12 +274,14 @@ def make_replacement_index(workbook:Workbook,report_name:str)->dict:
     log_dict:dict = rg.get_col_in_sheet(sheet)
     rows:list[str] = rg.get_rows_in_sheet(report_name,sheet,log_dict['报告编号'])  
     for row in rows:
-        temp_list=[]
+        temp_list=[]            
+        no_set:set[str] = set()     #   管道编号的集合
         record_num = sheet[log_dict['记录自编号']+row].value
         son_rows = rg.get_rows_in_sheet(record_num,sheet,log_dict['所属记录编号'])  # 获取子记录行索引
         temp_count=0
         for son_row in son_rows:
             key_str:str = sheet[log_dict['检查项目类别']+son_row].value
+            no_set.add(str(sheet[log_dict['管道编码']+son_row].value))
             keys = key_str.split(', ')
             for key in keys:
                 temp_count+=1
@@ -308,7 +311,8 @@ def make_replacement_index(workbook:Workbook,report_name:str)->dict:
 
                 ]
         temp_head_list = [  # 表头部分的固定内容
-                    ('+管道名称',global_name),
+                    ('+管道名称','、'.join([gd_dict[no] for no in no_set])),
+                    ('+管道编号','、'.join(no_set)),
                     ('+管段',sheet[log_dict['管段（桩号）']+row].value),
                     ('+管道编号',sheet[log_dict['管道编号']+row].value),
                     ('+设备名称型号',sheet[log_dict['设备名称型号']+row].value),
@@ -336,19 +340,37 @@ def make_replacement_index(workbook:Workbook,report_name:str)->dict:
 
     
     #   开挖检验报告
+    replacements['开挖记录首页']=[]
     replacements['开挖检验记录']=[]
     replacements['开挖人员']=[]
     sheet = workbook['开挖检测记录']
     log_dict = rg.get_col_in_sheet(sheet)  #获取表头索引
     
     rows = rg.get_rows_in_sheet(report_name,sheet,log_dict['报告编号'])
-    temp_count = 0
     for row in rows:
+        temp_list_0:list[tuple] = []
         temp_list:list[tuple] = []
-        temp_count += 1
+       
         temp_list += rg.make_change_text_for_heading(sheet,row,'开挖检测记录',log_dict)
-        temp_list += [('+管道名称',f"{global_name}（{sheet[log_dict['探坑位置']+row].value}）")]
+        gd_no:str=str(sheet[log_dict['管道编码']+row].value)
+        temp_list += [
+            ('+管道名称',sheet[log_dict['管道名称']+row].value),
+            ('+管道编号',gd_no),
+            ]
         temp_list += rg.make_change_text_for_option(sheet,row,'开挖检测记录',log_dict)
+        temp_list_0 += [
+            ('+管道名称',gd_dict[gd_no]),
+            # ('+管道编号',gd_no),
+            ('+管道规格',sheet[log_dict['管道规格']+row].value),
+            ('+实际检验日期',sheet[log_dict['检验日期']+row].value),
+            ('+探坑编号',sheet[log_dict['探坑编号']+row].value),
+            ('+探坑位置',sheet[log_dict['探坑位置']+row].value),
+            ('+探坑规格',sheet[log_dict['探坑规格（m）']+row].value),
+            ('+地表状况',sheet[log_dict['地形、地貌、地物描述']+row].value),
+            ('+检验情况',f"检验情况：{sheet[log_dict['缺陷描述']+row].value}，{sheet[log_dict['备注']+row].value}"),
+            ('+检验结论',f"检验结论：根据GB/T 43922-2024《在役聚乙烯燃气管道检验与评价》安全状况等级评定为{sheet[log_dict['结论']+row].value}"),
+            ('+检验日期',sheet[log_dict['检验日期']+row].value),
+            ]
         if CONFIG['是否检验签字']:
             temp_list+=[('+检验日期',sheet[log_dict['检验日期']+row].value)]
         v1 = sheet[log_dict['备注']+row].value
@@ -357,8 +379,9 @@ def make_replacement_index(workbook:Workbook,report_name:str)->dict:
         else:
             v1 = f"{rg.check_text(v1)}。"
         v2 = rg.check_text(sheet[log_dict['结论']+row].value)
-        temp_list += [('+备注',f"备注：{v1}根据GB/T 43922-2024《在役聚乙烯燃气管道检验与评价》安全状况等级评定为{v2}。")]
+        temp_list += [('+备注',f"备注：{v1}")]
         replacements['开挖检验记录'].append(temp_list)
+        replacements['开挖记录首页'].append(temp_list_0)
         replacements['开挖人员'].append(sheet[log_dict['检验人员']+row].value.split(','))
     
     #   穿、跨越检查
@@ -372,7 +395,7 @@ def make_replacement_index(workbook:Workbook,report_name:str)->dict:
                 
     for row in rows:
         # 本地确认
-        exists_bool:str|None = sheet[log_dict['穿越总结']+row].value
+        exists_bool:str|None = sheet[log_dict['穿跨越类型']+row].value
         if exists_bool == None:
             continue
         else:
@@ -692,6 +715,7 @@ def do_replace_in_son_report(doc,any_dict):
     l:int = 1
     m:int = 1
     n:int = 0
+    w:int = 0
     for table in doc.Tables:
         title_name:str = table.Title
     
@@ -707,6 +731,9 @@ def do_replace_in_son_report(doc,any_dict):
         elif title_name == '穿、跨越检查记录' and any_dict['穿、跨越检查记录']:
             rg.replace_text_in_table(doc,table,any_dict['穿、跨越检查记录'][k],'穿、跨越检查记录生成')  
             k+=1
+        elif title_name == '开挖记录首页':
+            rg.replace_text_in_table(doc,table,any_dict['开挖记录首页'][w],'开挖检验记录生成')  
+            w+=1
         elif title_name == '风险预评估记录':
             son_table = table.Cell(3,1).Tables(1)
             for score in any_dict['风险预评估'][:8]:
@@ -770,7 +797,16 @@ def do_replace_all_pic(doc,pic_dict:dict,path:str):
                 if tag == '审核签字':
                     rg.replace_pictue(doc,f"{CONFIG['签名图片所在']}\\{CONFIG['审核人']}.jpg",shape)
         
-
+#   检测数据整理
+def sort_out_data(workbook:Workbook,report_name:str)->dict[str,str]:
+    """按照“管道组织关系”中的内容，返回此报告的（管道编码——名称元组）字典"""
+    f_dict:dict[str,str]={}
+    sheet = workbook['管段清单']
+    log_dict= rg.get_col_in_sheet(sheet)
+    rows = rg.get_rows_in_sheet(report_name,sheet,log_dict['报告编号'])
+    for row in rows:
+        f_dict[str(sheet[log_dict['管道编号']+row].value)]=sheet[log_dict['工程名称']+row].value
+    return f_dict
     
 def solo_main(report_name:str,workbook:Workbook,word,path:str):
     replacements_dict:dict = {}
@@ -778,9 +814,9 @@ def solo_main(report_name:str,workbook:Workbook,word,path:str):
     doc_modle_path = f"{CONFIG['模板文件']}"
     try:
         doc = word.Documents.Open(doc_modle_path)
-        
+        gd_dict=sort_out_data(workbook,report_name)
         print('生成替换用文本')
-        replacements_dict |= make_replacement_index(workbook,report_name)
+        replacements_dict |= make_replacement_index(workbook,report_name,gd_dict)
         replacements_list += make_all_replacement_index(workbook,report_name) 
        
         print('替换内容')
@@ -817,6 +853,7 @@ def solo_main(report_name:str,workbook:Workbook,word,path:str):
             doc.SaveAs2(f"{CONFIG['输出文件所在']}\\error_{report_name}.docx",FileFormat =16)
             print(f"{report_name}发生错误！")
             doc.Saved =True
+            doc.Close(SaveChanges=False)
             raise ex
     finally:
         if doc is not None:
@@ -830,14 +867,14 @@ if __name__ == '__main__':
         '输出文件':'E:\\BaiduSyncdisk\\成渝特检\\模板文件与生成程序\\记录、报告生成\\PE管\\输出文件',
     }
     set_list:list[tuple[int,str,str]]=[
-        (2,'模板文件','docx',r'E:\BaiduSyncdisk\成渝特检\模板文件与生成程序\记录、报告生成\PE管\郫三司\PE管原始记录模板——郫三司.docx'),
-        (0,'数据源所在','',r'E:\BaiduSyncdisk\成渝特检\模板文件与生成程序\记录、报告生成\PE管\郫三司'),
+        (2,'模板文件','docx',r'E:\BaiduSyncdisk\成渝特检\模板文件与生成程序\记录、报告生成\PE管\华新\PE管原始记录模板——华新.docx'),
+        (0,'数据源所在','',r'E:\BaiduSyncdisk\成渝特检\模板文件与生成程序\记录、报告生成\PE管\华新'),
         (0,'签名图片所在','',r'E:\BaiduSyncdisk\成渝特检\模板文件与生成程序\记录、报告生成\PE管\电子签名'),
-        (0,'输出文件所在','',r'E:\BaiduSyncdisk\成渝特检\模板文件与生成程序\记录、报告生成\PE管\记录文件\郫三司'),
+        (0,'输出文件所在','',r'E:\BaiduSyncdisk\成渝特检\模板文件与生成程序\记录、报告生成\PE管\记录文件\华新'),
         (3,'是否检验签字',False,True), 
         (3,'是否审核签字',False,True), 
         (4,'审核人','','付飞'), 
-        (4,'审核日期','','2025年08月15日'), 
+        (4,'审核日期','','2025年12月11日'), 
     ]
     CONFIG = interraction_terminal.set_argumments(set_list)
     app_type = rg.check_office_installation()
@@ -875,6 +912,7 @@ if __name__ == '__main__':
             solo_main(report_name,workbook,word,path)
         except Exception as e:
             print('有错误发生')
+    word.Quit()
         # finally:
         #     continue
     # report_name = 'DGB2025001CD'

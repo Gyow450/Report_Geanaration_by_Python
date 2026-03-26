@@ -411,6 +411,7 @@ def copy_and_insert_report_bookmark(doc , bookmark:str,times:int ,pages:int = 0)
         # print(f"{i},",end="")
     # 删除控制用关键字
     doc.Bookmarks("InsertPos").Delete()
+
 #   编辑表头等替换文本
 def make_change_text_for_heading(sheet:Workbook,row:str,record_type:str,log_dict:dict)->list[tuple]:
     replacements:list[tuple] = []
