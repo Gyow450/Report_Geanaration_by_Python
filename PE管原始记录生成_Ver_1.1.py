@@ -5,6 +5,7 @@
 from multiprocessing.dummy import Value
 import re
 from tabnanny import check
+from numpy import s_
 import openpyxl
 from openpyxl.workbook import Workbook
 import datetime
@@ -189,6 +190,21 @@ def make_sign_dig_log(workbook:Workbook,doc,report_name:str,path:str,times_dict:
 
     return sign_dict
 
+#   宏观检查的行号梳理
+def make_macro_index(workbook:Workbook,report_name:str,gd_dict:dict[str,str])->dict[str,list[str]]:
+    """按照输入的管道编码，返回表头行号——子记录行号列表构成的字典"""
+    macro_index:dict[str,list[str]]={}
+    sheet =workbook['宏观检查记录']
+    log_dict = rg.get_col_in_sheet(sheet)
+    for cell in sheet[log_dict['管道编码']]:
+        if cell.value in gd_dict.keys():
+            s_row =str(cell.row)
+            parent_no =sheet[log_dict['所属记录编号']+s_row].value
+            rows =rg.get_rows_in_sheet(parent_no,sheet,log_dict['记录自编号'])
+            if rows[0] not in macro_index.keys():
+                macro_index[rows[0]]=[]
+            macro_index[rows[0]]+=s_row
+    return macro_index
 
 #   完成索引
 def make_replacement_index(workbook:Workbook,report_name:str,gd_dict:dict[str,str])->dict:
@@ -272,12 +288,13 @@ def make_replacement_index(workbook:Workbook,report_name:str,gd_dict:dict[str,st
     temp_list:list[tuple]= []
     sheet =workbook['宏观检查记录']
     log_dict:dict = rg.get_col_in_sheet(sheet)
-    rows:list[str] = rg.get_rows_in_sheet(report_name,sheet,log_dict['报告编号'])  
-    for row in rows:
+    # rows:list[str] = rg.get_rows_in_sheet(report_name,sheet,log_dict['报告编号']) 
+    marco_dict=make_macro_index(workbook,report_name,gd_dict)
+    for row,son_rows in marco_dict.items():
         temp_list=[]            
         no_set:set[str] = set()     #   管道编号的集合
-        record_num = sheet[log_dict['记录自编号']+row].value
-        son_rows = rg.get_rows_in_sheet(record_num,sheet,log_dict['所属记录编号'])  # 获取子记录行索引
+        # record_num = sheet[log_dict['记录自编号']+row].value
+        # son_rows = rg.get_rows_in_sheet(record_num,sheet,log_dict['所属记录编号'])  # 获取子记录行索引
         temp_count=0
         for son_row in son_rows:
             key_str:str = sheet[log_dict['检查项目类别']+son_row].value
@@ -389,19 +406,19 @@ def make_replacement_index(workbook:Workbook,report_name:str,gd_dict:dict[str,st
     replacements['穿、跨越人员'] = []
     sheet =workbook['宏观检查记录']
     log_dict = rg.get_col_in_sheet(sheet)
-    rows = rg.get_rows_in_sheet(report_name,sheet,log_dict['报告编号'])
+    # rows = rg.get_rows_in_sheet(report_name,sheet,log_dict['报告编号'])
     temp_count = 0  # 报告标题的编号
     report_no:int = 0       # 穿跨越报告的序号
                 
-    for row in rows:
+    for row,son_rows in marco_dict.items():
         # 本地确认
-        exists_bool:str|None = sheet[log_dict['穿跨越类型']+row].value
+        exists_bool:str|None = sheet[log_dict['穿越总结']+row].value
         if exists_bool == None:
             continue
         else:
             report_no+=1
             record_num = sheet[log_dict['记录自编号']+row].value
-            son_rows = rg.get_rows_in_sheet(record_num,sheet,log_dict['所属记录编号'])
+            # son_rows = rg.get_rows_in_sheet(record_num,sheet,log_dict['所属记录编号'])
             son_rows1:list[str]=[]
             son_rows2:list[str]=[]
             for son_row in son_rows:
