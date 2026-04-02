@@ -178,13 +178,13 @@ def replace_text_in_table(doc,table,any_list:list[tuple],type:str)->None:
 
 
     
-def get_rows_in_sheet(report_name:str , sheet:Worksheet, col_letter ='A',type:str='str'):
+def get_rows_in_sheet(key_str:str , sheet:Worksheet, col_letter ='A',type:str='str'):
     """实际是查找某一列中关键字，返回行号列表,type字段控制格式（str或int）"""                                                      
     rows_in_sheet:list[str|int] = []
     col_num:int = sheet[col_letter+'1'].column
     for cells in sheet.iter_cols(min_col=col_num,max_col=col_num,min_row=2,max_row=sheet.max_row,values_only=False): 
-        for cell in cells:                                                               
-            if cell.value == report_name:
+        for cell in cells:
+            if str(cell.value) == key_str:
                 if type == 'str':
                     rows_in_sheet.append(str(cell.row))
                 elif type == 'int':
