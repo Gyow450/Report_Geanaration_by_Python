@@ -416,6 +416,8 @@ def make_replacement_index(workbook:Workbook,report_name:str,gd_dict:dict[str,di
     # rows:list[str] = rg.get_rows_in_sheet(report_name,sheet,log_dict['报告编号'])  
     temp_count:int = 0  #分项报告编号
     white_list:set[str] = {'无','符合','完好','合格','正常','保护设施完好'}
+    
+    #   表头部分填表
     for gd_name,rows in gd_dict['宏观'].items():
         temp_count += 1
         replacements['文本a']+=[('报告#',f"报告（{temp_count}）")]
@@ -440,73 +442,47 @@ def make_replacement_index(workbook:Workbook,report_name:str,gd_dict:dict[str,di
             key_dict[key]=[]
             for row in rows:
                 u:str|None =sheet[log_dict['检查项目类别']+row].value
-                check_all_set|=set(u.split(', '))    
-                v:str|None= sheet[log_dict[key]+row].value
+                check_all_set|=set(u.split(', '))    #  所有检查项集合
+                v:str|None= sheet[log_dict[key]+row].value  #   对应具体项目的检查结果
                 if v:
-                    key_dict[key]+=v.split(', ')
+                    key_dict[key]+=v.split(', ')    #   这个检查项的所有结果列表
             check_list = key_dict[key]
-            check_set = set(check_list)
-            s_problem:str = ''
+            check_set = set(check_list)             #   这个检查项的结果去重
+            s_problem:str = ''                      #   单项的问题描述
             stat_dict = collections.Counter(check_list)
             
-            #   填勾选表
-            if key not in check_all_set:    #   无这个检查项
-                if '无此项' in options: #   输出无此项
-                    temp_text:str=''
-                    for option in options:
-                        if option =='无此项':
-                            temp_text +=f"☑{option}、"
-                        else:
-                            temp_text +=f"□{option}、" 
-                else:                 # 没有‘无此项’选项，输出白名单里的值
-                    temp_text:str=''
-                    for option in options:  
-                        if option in white_list:
-                            temp_text +=f"☑{option}、"
-                        else:
-                            temp_text +=f"□{option}、" 
+    #   复选框部分选表
+            temp_text:str=''
+            s_problem:str = ''
+            rest_options =check_set-set(options)
+            a_rest_options = rest_options-{{'全线无标志','全线深根植物伴行'}}
+            if key not in check_all_set and '无此项' in options:        #   没有这个检查项,但有无此项选项，输出无此项
+                temp_text+=[f"□{option}、"  if option=='无此项' else f"☑{option}、" for option in options ]
                 temp_list+=[(f"+{key}",f"{temp_text}□",'  ')]
-            else:
-                if not key_dict[key] :      #    有检查项但无返回
-                    temp_text:str=''
-                    for option in options:  
-                        if option in white_list:
-                            temp_text +=f"☑{option}、"
-                        else:
-                            temp_text +=f"□{option}、" 
-                    temp_list+=[(f"+{key}",f"{temp_text}□",'  ')]
-                else:                   #   有返回值
-                    s_problem:str = ''
-                    
-                    if not check_set-white_list:  #   只有白名单中的值
-                        temp_text:str=''
-                        for option in options:  
-                            if option in white_list:
-                                temp_text +=f"☑{option}、"
-                            else:
-                                temp_text +=f"□{option}、" 
-                        temp_list+=[(f"+{key}",f"{temp_text}□",'  ')]
-                    else:
-                        temp_text:str=''
-                        for option in options:  
-                            if option in check_set and option not in white_list:    #实际有问题的
-                                temp_text +=f"☑{option}、"                        
-                            else:
-                                temp_text +=f"□{option}、" 
-                        if not check_set-set(options):    #   初始无自定义项
-                            temp_list+=[(f"+{key}",f"{temp_text}□"'  ')]
-                        else:
-                            rest_option:set[str] = check_set-set(options)
-                            if '全线无标志' in rest_option:
-                                temp_text=temp_text.replace('□无标志','☑无标志')
-                            elif '全线深根植物伴行' in rest_option:
-                                temp_text=temp_text.replace('□深根植物','☑深根植物')
-                            rest_option -= {'全线无标志','全线深根植物伴行'}
-                            if not rest_option: #   整理后无自定义项
-                                temp_list+=[(f"+{key}",f"{temp_text}□"'  ')]
-                            else:               #   有自定义项
-                                temp_list+=[(f"+{key}",f"{temp_text}☑",f"{'，'.join(rest_option)}")]
-            #   统计问题项
+            elif key not in check_all_set and '无此项' not in options:  #   没有这个检查项,且没有无此项选项，输出白名单里的值
+                temp_text+=[f"□{option}、"  if option not in white_list else f"☑{option}、" for option in options ]
+                temp_list+=[(f"+{key}",f"{temp_text}□",'  ')]
+            elif not key_dict[key]:                                     #   有这个检查项，但没有任何结果，输出白名单里的值 
+                temp_text+=[f"□{option}、"  if option not in white_list else f"☑{option}、" for option in options ]
+                temp_list+=[(f"+{key}",f"{temp_text}□",'  ')]
+            elif  not check_set-white_list:                             #   有检查项且有返回，但返回的都是白名单里的值，输出白名单里的值
+                temp_text+=[f"□{option}、"  if option not in white_list else f"☑{option}、" for option in options ]
+                temp_list+=[(f"+{key}",f"{temp_text}□",'  ')]
+            elif not rest_options:                                       #   有检查项且有返回，且返回的都是选项里的值，输出选项里的值
+                temp_text+=[f"□{option}、"  if (option not in check_set or option in white_list) else f"☑{option}、" for option in options ]
+                temp_list+=[(f"+{key}",f"{temp_text}□",'  ')]
+            elif not a_rest_options:                                    #   选项外的值只有“全线XX”，调整后常规输出
+                temp_text+=[f"□{option}、"  if (option not in check_set or option in white_list) else f"☑{option}、" for option in options ]
+                temp_text=temp_text.replace('□无标志','☑无标志') if '全线无标志' in rest_options else temp_text
+                temp_text=temp_text.replace('□深根植物','☑深根植物') if '全线深根植物伴行' in rest_options else temp_text
+                temp_list+=[(f"+{key}",f"{temp_text}□",'  ')]
+            else:                                                       #   需要输出其他值
+                temp_text+=[f"□{option}、"  if (option not in check_set or option in white_list) else f"☑{option}、" for option in options ]
+                temp_text=temp_text.replace('□无标志','☑无标志') if '全线无标志' in rest_options else temp_text
+                temp_text=temp_text.replace('□深根植物','☑深根植物') if '全线深根植物伴行' in rest_options else temp_text
+                temp_list+=[(f"+{key}",f"{temp_text}☑",f"{'，'.join(a_rest_options)}")]
+                
+        #   由统计的问题项完成填入内容
             if '全线无标志' in stat_dict:
                 stat_dict.pop('无标志',None)
                 stat_dict.pop('缺失',None)
