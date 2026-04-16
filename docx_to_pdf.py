@@ -30,7 +30,7 @@ def docx_transform(input_dir:Path|str,output_dir:Path|str)->None:
         # mid_name=name.split('.')[0]
         # output_file = f"{source_path}\\{int(mid_name):03d}.pdf"
         doc.SaveAs2(str(output_path), FileFormat=17)  
-        # print(f"文档已保存为：{output_file}")
+        print(f"文档已保存为：{output_file}")
         doc.Close(SaveChanges=False)
     word.Quit()
 

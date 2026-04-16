@@ -114,7 +114,7 @@ def make_sign_dig_log(workbook:Workbook,doc,report_name:str,path:str,rm_dict:dic
     
     sign_dict['签字'] = []  
     all_names_list=list(all_names)
-    sign_dict['签字'] += all_names_list[0:2]*len(times_dict['资料审查'])
+    sign_dict['签字'] += all_names_list[0:1]*len(times_dict['资料审查'])
     # sign_dict['签字'] += all_names_list[0:2]
 
     # 签宏观检查报告
@@ -286,8 +286,8 @@ def make_replacement_index(workbook:Workbook,report_name:str,gd_dict:dict[str,st
         
         e_name=sheet[log_dict['工程名称']+row].value
         fdate=sheet[log_dict['竣工验收日期']+row].value
-        temp_text='无资料，仅有GIS系统位置信息' if '使用单位指定管段' in e_name else '仅见竣工图，未见设计文件、质量证明文件、监督检验证书及安装、改造、修理资料'
-        temp_list+=[('+技术档案资料审查',temp_text)]
+        # temp_text='无资料，仅有GIS系统位置信息' if '使用单位指定管段' in e_name else '仅见竣工图，未见设计文件、质量证明文件、监督检验证书及安装、改造、修理资料'
+        # temp_list+=[('+技术档案资料审查',temp_text)]
         # temp_list+=[('+资料审查问题记载','，'.join([t for t in temp_text_list if '无' in t]+['无管道历次年度检查资料']))]
         replacements['资料审查记录'].append(temp_list)
     
@@ -705,7 +705,7 @@ def make_all_replacement_index(workbook,report_name,gd_dict):
                 ('+投运年限',f'{min(years_set)}—{max(years_set)}年' ),
                 ('+管道长度',lenth/1000),
                  ]
-    CONFIG['审核人'] = sheet[log_dict['审核人']+row].value
+    # CONFIG['审核人'] = sheet[log_dict['审核人']+row].value
 
     # sheet = workbook['管段清单']
     # log_dict:dict =rg.get_col_in_sheet(sheet)
@@ -912,14 +912,14 @@ if __name__ == '__main__':
         '输出文件':'E:\\BaiduSyncdisk\\成渝特检\\模板文件与生成程序\\记录、报告生成\\PE管\\输出文件',
     }
     set_list:list[tuple[int,str,str]]=[
-        (2,'模板文件','docx',r'E:\BaiduSyncdisk\成渝特检\模板文件与生成程序\记录、报告生成\PE管\1400管网\PE管原始记录模板——管网.docx'),
-        (0,'数据源所在','',r'E:\BaiduSyncdisk\成渝特检\模板文件与生成程序\记录、报告生成\PE管\1400管网'),
+        (2,'模板文件','docx',r'E:\BaiduSyncdisk\成渝特检\模板文件与生成程序\记录、报告生成\PE管\大丰二期\PE管原始记录模板——大丰.docx'),
+        (0,'数据源所在','',r'E:\BaiduSyncdisk\成渝特检\模板文件与生成程序\记录、报告生成\PE管\大丰二期'),
         (0,'签名图片所在','',r'E:\BaiduSyncdisk\成渝特检\模板文件与生成程序\记录、报告生成\PE管\电子签名'),
-        (0,'输出文件所在','',r'E:\BaiduSyncdisk\成渝特检\模板文件与生成程序\记录、报告生成\PE管\记录文件\管网第二批次'),
+        (0,'输出文件所在','',r'E:\BaiduSyncdisk\成渝特检\模板文件与生成程序\记录、报告生成\PE管\记录文件\大丰二期'),
         (3,'是否检验签字',False,True), 
         (3,'是否审核签字',False,True), 
-        # (4,'审核人','','付飞'), 
-        (4,'审核日期','','2025年12月15日'), 
+        (4,'审核人','','付飞'), 
+        (4,'审核日期','','2026年03月03日'), 
     ]
     CONFIG = interraction_terminal.set_argumments(set_list)
     app_type = rg.check_office_installation()
