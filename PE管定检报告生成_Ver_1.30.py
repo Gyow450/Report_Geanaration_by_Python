@@ -6,6 +6,7 @@
 """
 import collections
 import random
+from shlex import join
 import openpyxl
 from openpyxl.workbook import Workbook
 import datetime
@@ -47,20 +48,20 @@ def expand_all_tables(doc,pages:list[int])->None:
     #   宏观检查报告    
     times:int = pages[0]
     if times>1:
-        rg.copy_and_insert_report(doc , '复制宏观检查报告', times)
-    rg.replace_text(doc, '复制宏观检查报告','',2)
+        rg.copy_and_insert_report_bookmark(doc , '宏观检查报告', times)
+    # rg.replace_text(doc, '复制宏观检查报告','',2)
 
     #   开挖检测
     times:int = pages[1]
     if times>1:
-        rg.copy_and_insert_report(doc , '复制开挖报告', times,1)
-    rg.replace_text(doc, '复制开挖报告','',2)  
+        rg.copy_and_insert_report_bookmark(doc , '开挖直接检验报告', times,1)
+    # rg.replace_text(doc, '复制开挖报告','',2)  
        
     #   穿跨越检查
     times:int = pages[2]
     if times>1:
-        rg.copy_and_insert_report(doc , '复制穿跨越报告', times)
-    rg.replace_text(doc, '复制穿跨越报告','',2)  
+        rg.copy_and_insert_report_bookmark(doc , '穿、跨越检查报告', times)
+    # rg.replace_text(doc, '复制穿跨越报告','',2)  
     
     
     #   整理删除页面
@@ -180,17 +181,21 @@ def sort_out_data(workbook:Workbook,report_name:str)->dict[str,dict[tuple[str],l
     log_dict= rg.get_col_in_sheet(sheet)
     rows = rg.get_rows_in_sheet(report_name,sheet,log_dict['报告编号'])
     #  管段（编码，名称）元组集合
-    gd_set:set[tuple[str]]=set((sheet[log_dict['管道编码']+row].value,sheet[log_dict['定检管道名称']+row].value) for row in rows)        
+    gd_set:set[tuple[str]]=set((str(sheet[log_dict['管道编码']+row].value),sheet[log_dict['管道名称']+row].value) for row in rows)        
     
     sheet = workbook['宏观检查记录']
     log_dict= rg.get_col_in_sheet(sheet)
     for gd_num in sorted(list(gd_set)):
-        f_dict['宏观'][gd_num] = [str(c.row) for c in sheet[log_dict['管道编码']] if c.value==gd_num[0]]
+        f_dict['宏观'][gd_num] = [str(c.row) for c in sheet[log_dict['管道编码']] if str(c.value)==gd_num[0]]
 
     sheet = workbook['开挖检测记录']
     log_dict= rg.get_col_in_sheet(sheet)
     for gd_num in sorted(list(gd_set)):
-        f_dict['开挖'][gd_num] = [str(c.row) for c in sheet[log_dict['管道编码']] if c.value==gd_num[0]]
+        # for c in sheet[log_dict['管道编码']]:
+        #     v=str(c.value)
+        #     if v==gd_num[0]:
+        #         f_dict['开挖'][gd_num]
+        f_dict['开挖'][gd_num] = [str(c.row) for c in sheet[log_dict['管道编码']] if str(c.value)==gd_num[0]]
 
     return f_dict
                 
@@ -455,29 +460,29 @@ def make_replacement_index(workbook:Workbook,report_name:str,gd_dict:dict[str,di
             temp_text:str=''
             s_problem:str = ''
             rest_options =check_set-set(options)
-            a_rest_options = rest_options-{{'全线无标志','全线深根植物伴行'}}
+            a_rest_options = rest_options-{'全线无标志','全线深根植物伴行'}
             if key not in check_all_set and '无此项' in options:        #   没有这个检查项,但有无此项选项，输出无此项
-                temp_text+=[f"□{option}、"  if option=='无此项' else f"☑{option}、" for option in options ]
+                temp_text=''.join([f"□{option}、"  if option=='无此项' else f"☑{option}、" for option in options ])
                 temp_list+=[(f"+{key}",f"{temp_text}□",'  ')]
             elif key not in check_all_set and '无此项' not in options:  #   没有这个检查项,且没有无此项选项，输出白名单里的值
-                temp_text+=[f"□{option}、"  if option not in white_list else f"☑{option}、" for option in options ]
+                temp_text=''.join([f"□{option}、"  if option not in white_list else f"☑{option}、" for option in options ])
                 temp_list+=[(f"+{key}",f"{temp_text}□",'  ')]
             elif not key_dict[key]:                                     #   有这个检查项，但没有任何结果，输出白名单里的值 
-                temp_text+=[f"□{option}、"  if option not in white_list else f"☑{option}、" for option in options ]
+                temp_text+=''.join([f"□{option}、"  if option not in white_list else f"☑{option}、" for option in options ])
                 temp_list+=[(f"+{key}",f"{temp_text}□",'  ')]
             elif  not check_set-white_list:                             #   有检查项且有返回，但返回的都是白名单里的值，输出白名单里的值
-                temp_text+=[f"□{option}、"  if option not in white_list else f"☑{option}、" for option in options ]
+                temp_text+=''.join([f"□{option}、"  if option not in white_list else f"☑{option}、" for option in options ])
                 temp_list+=[(f"+{key}",f"{temp_text}□",'  ')]
             elif not rest_options:                                       #   有检查项且有返回，且返回的都是选项里的值，输出选项里的值
-                temp_text+=[f"□{option}、"  if (option not in check_set or option in white_list) else f"☑{option}、" for option in options ]
+                temp_text+=''.join([f"□{option}、"  if (option not in check_set or option in white_list) else f"☑{option}、" for option in options ])
                 temp_list+=[(f"+{key}",f"{temp_text}□",'  ')]
             elif not a_rest_options:                                    #   选项外的值只有“全线XX”，调整后常规输出
-                temp_text+=[f"□{option}、"  if (option not in check_set or option in white_list) else f"☑{option}、" for option in options ]
+                temp_text+=''.join([f"□{option}、"  if (option not in check_set or option in white_list) else f"☑{option}、" for option in options ])
                 temp_text=temp_text.replace('□无标志','☑无标志') if '全线无标志' in rest_options else temp_text
                 temp_text=temp_text.replace('□深根植物','☑深根植物') if '全线深根植物伴行' in rest_options else temp_text
                 temp_list+=[(f"+{key}",f"{temp_text}□",'  ')]
             else:                                                       #   需要输出其他值
-                temp_text+=[f"□{option}、"  if (option not in check_set or option in white_list) else f"☑{option}、" for option in options ]
+                temp_text+=''.join([f"□{option}、"  if (option not in check_set or option in white_list) else f"☑{option}、" for option in options ])
                 temp_text=temp_text.replace('□无标志','☑无标志') if '全线无标志' in rest_options else temp_text
                 temp_text=temp_text.replace('□深根植物','☑深根植物') if '全线深根植物伴行' in rest_options else temp_text
                 temp_list+=[(f"+{key}",f"{temp_text}☑",f"{'，'.join(a_rest_options)}")]
@@ -818,9 +823,9 @@ def make_all_replacement_index(workbook:Workbook,report_name:str,gd_dict:dict[st
         # for row in rows:
         #     if sheet[log_dict['实际使用年限']+row].value:
         #         used_years += [sheet[log_dict['实际使用年限']+row].value]
-        used_years = [sheet[log_dict['实际使用年限']+row].value for row in rows if sheet[log_dict['实际使用年限']+row].value]
+        used_years = [sheet[log_dict['实际使用年限']+row].value for row in rows if isinstance(sheet[log_dict['实际使用年限']+row].value,float)]
         replacements+=[('+投运年限',f"{min(used_years)}—{max(used_years)}年")]
-        if any('使用单位指定管段' in sheet[log_dict['工程名称']+row].value for row in rows):
+        if any('使用单位指定管段' in sheet[log_dict['施工单位名称']+row].value for row in rows):
             replacements+=[('+不明管道检查','部分管段无资料，仅有GIS系统位置信息；其余管段仅见竣工图')]
             replacements+=[('+不明管道措施',',针对仅有GIS位置信息的管道，应开展专项调查工作进一步明确管道各项属性')]
         else:
@@ -1043,13 +1048,13 @@ def solo_main(report_name:str,workbook:Workbook,word):
 
 if __name__ == '__main__':
     set_list:list[tuple[int,str,str|bool,str|bool]]=[
-        (2,'模板文件','docx',r'E:\BaiduSyncdisk\成渝特检\模板文件与生成程序\记录、报告生成\PE管\大丰二期\PE管定检报告模版_Ver_1.31_手签名.docx'),
-        (0,'数据源所在','',r'E:\BaiduSyncdisk\成渝特检\模板文件与生成程序\记录、报告生成\PE管\大丰二期'),
+        (2,'模板文件','docx',r'E:\BaiduNetdiskDownload\2026唐昌\PE管定检报告模版_Ver_1.31_手签名.docx'),
+        (0,'数据源所在','',r'E:\BaiduNetdiskDownload\2026唐昌'),
         (0,'签名图片所在','',r'E:\BaiduSyncdisk\成渝特检\模板文件与生成程序\记录、报告生成\PE管\电子签名'),
-        (0,'输出文件所在','',r'E:\BaiduSyncdisk\成渝特检\模板文件与生成程序\记录、报告生成\PE管\大丰二期\输出'),
+        (0,'输出文件所在','',r'E:\BaiduNetdiskDownload\2026唐昌\输出'),
         (3,'是否生成概述段落',False,True),
         (3,'是否写入管道清单',False,True),
-        (3,'是否写入管道路由图',False,True),
+        (3,'是否写入管道路由图',False,False),
         (3,'是否生成签字',False,False),    
         (3,'是否转pdf',False,False),    
     ]
@@ -1078,9 +1083,9 @@ if __name__ == '__main__':
     log_dict =rg.get_col_in_sheet(sheet)
     # rows = rg.get_rows_in_sheet('一',sheet,log_dict['批次'])
     # all_names=set(sheet[log_dict['报告编号']+row].value for row in rows if sheet[log_dict['报告编号']+row].value)   # 遍历静态台账里所有编号    
-    all_names=[cell.value for cell in sheet["A"] if cell.value]
+    all_names=[cell.value for cell in sheet["A"] if cell.value and cell.value.startswith('DGB')]
     # for report_name in sorted(list(set(all_names)),reverse=False)[:]:
-    for report_name in all_names[1:]:
+    for report_name in all_names[:]:
         # if os.path.exists(f"{config['输出文件所在']}\\{report_name}.docx"):
         try:
             solo_main(report_name,workbook,word)
