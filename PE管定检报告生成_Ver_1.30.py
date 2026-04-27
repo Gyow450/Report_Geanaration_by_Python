@@ -186,7 +186,7 @@ def sort_out_data(workbook:Workbook,report_name:str)->dict[str,dict[tuple[str],l
     sheet = workbook['宏观检查记录']
     log_dict= rg.get_col_in_sheet(sheet)
     for gd_num in sorted(list(gd_set)):
-        f_dict['宏观'][gd_num] = [str(c.row) for c in sheet[log_dict['管道编码']] if str(c.value)==gd_num[0]]
+        f_dict['宏观'][gd_num] = [str(c.row) for c in sheet[log_dict['管道编码']] if str(c.value)==gd_num[0] and gd_num[0] not in ['22','23','24','25']]
 
     sheet = workbook['开挖检测记录']
     log_dict= rg.get_col_in_sheet(sheet)
@@ -309,7 +309,7 @@ def make_replacement_index(workbook:Workbook,report_name:str,gd_dict:dict[str,di
     depth_count:int=0  #   测深数量统计          
     error_depth:int=0   #   埋深不足统计
     row_marco_list = [row for rows in gd_dict['宏观'].values() for row in rows]
-    for key in ['管道防护带','地表环境','穿、跨越公路','穿、跨越河流','地面标志','管道埋深','埋深达标','阀门','阀门井','钢塑转换接头',]:
+    for key in ['管道防护带','地表环境','穿、跨越公路','穿、跨越河流','地面标志','管道埋深','埋深达标','阀门','阀门井','钢塑转换接头','穿跨越类型']:
         # temp_set:set[str]=set()
         # temp_list:list[int|float|str]=[]
         if key in ['管道埋深','埋深达标']:  #   对于这两个列表记数
@@ -337,7 +337,7 @@ def make_replacement_index(workbook:Workbook,report_name:str,gd_dict:dict[str,di
             temp_text+=f"{s_p}，"
         replacements['文本'].append(('+环境检查结果',f"管道存在{rg.check_text(temp_text)}等情况，其余检查内容未见异常。"))
     #   穿跨越检查结果
-    if not check_dict['穿、跨越公路']|check_dict['穿、跨越河流']:
+    if not check_dict['穿跨越类型']:
         replacements['文本'].append(('+穿、跨越检查结果','本次检验管道无穿、跨越段'))
     elif '保护设施完好' in check_dict['穿、跨越公路']|check_dict['穿、跨越河流'] :
         replacements['文本'].append(('+穿、跨越检查结果','穿、跨越保护设施完好'))
@@ -652,7 +652,7 @@ def make_replacement_index(workbook:Workbook,report_name:str,gd_dict:dict[str,di
                         temp_list+=[
                             (f'&号{i}',f"{i+page*5}"),
                             (f'&长度{i}',sheet[log_dict['穿跨越长度']+row].value),
-                            (f'&发现问题及位置描述{i}',f"{sheet[log_dict['地表参照及位置描述']+row].value if sheet[log_dict['地表参照及位置描述']+row].value else ''} ，（{sheet[log_dict['坐标X']+row].value},{sheet[log_dict['坐标Y']+row].value}）"),
+                            (f'&发现问题及位置描述{i}',f"{sheet[log_dict['地表参照及位置描述']+row].value if sheet[log_dict['地表参照及位置描述']+row].value else ''}  （{sheet[log_dict['坐标X']+row].value},{sheet[log_dict['坐标Y']+row].value}）"),
                             (f'&备注{i}',other),
                         ]
                     if i<5:
@@ -825,7 +825,7 @@ def make_all_replacement_index(workbook:Workbook,report_name:str,gd_dict:dict[st
         #         used_years += [sheet[log_dict['实际使用年限']+row].value]
         used_years = [sheet[log_dict['实际使用年限']+row].value for row in rows if isinstance(sheet[log_dict['实际使用年限']+row].value,float)]
         replacements+=[('+投运年限',f"{min(used_years)}—{max(used_years)}年")]
-        if any('使用单位指定管段' in sheet[log_dict['施工单位名称']+row].value for row in rows):
+        if any('使用单位指定管段' in sheet[log_dict['施工单位名称']+row].value  for row in rows if sheet[log_dict['施工单位名称']+row].value):
             replacements+=[('+不明管道检查','部分管段无资料，仅有GIS系统位置信息；其余管段仅见竣工图')]
             replacements+=[('+不明管道措施',',针对仅有GIS位置信息的管道，应开展专项调查工作进一步明确管道各项属性')]
         else:
@@ -1048,10 +1048,10 @@ def solo_main(report_name:str,workbook:Workbook,word):
 
 if __name__ == '__main__':
     set_list:list[tuple[int,str,str|bool,str|bool]]=[
-        (2,'模板文件','docx',r'E:\BaiduNetdiskDownload\2026唐昌\PE管定检报告模版_Ver_1.31_手签名.docx'),
-        (0,'数据源所在','',r'E:\BaiduNetdiskDownload\2026唐昌'),
+        (2,'模板文件','docx',r'E:\BaiduSyncdisk\成渝特检\模板文件与生成程序\记录、报告生成\PE管\2026唐昌\PE管定检报告模版_Ver_1.31_手签名.docx'),
+        (0,'数据源所在','',r'E:\BaiduSyncdisk\成渝特检\模板文件与生成程序\记录、报告生成\PE管\2026唐昌'),
         (0,'签名图片所在','',r'E:\BaiduSyncdisk\成渝特检\模板文件与生成程序\记录、报告生成\PE管\电子签名'),
-        (0,'输出文件所在','',r'E:\BaiduNetdiskDownload\2026唐昌\输出'),
+        (0,'输出文件所在','',r'E:\BaiduSyncdisk\成渝特检\模板文件与生成程序\记录、报告生成\PE管\2026唐昌\输出'),
         (3,'是否生成概述段落',False,True),
         (3,'是否写入管道清单',False,True),
         (3,'是否写入管道路由图',False,False),
